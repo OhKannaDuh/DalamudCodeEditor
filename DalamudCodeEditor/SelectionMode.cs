@@ -1,4 +1,4 @@
-namespace ImGuiCodeEditor;
+namespace DalamudCodeEditor;
 
 public enum SelectionMode
 {

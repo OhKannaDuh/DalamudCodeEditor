@@ -1,4 +1,4 @@
-namespace ImGuiCodeEditor;
+namespace DalamudCodeEditor;
 
 using System.Numerics;
 using System.Text.RegularExpressions;
@@ -14,8 +14,10 @@ using System.Text;
 
 using ImGuiNET;
 
-public class TextEditor
+public partial class TextEditor
 {
+    private bool mSuppressUndo = false;
+
     public TextEditor()
     {
         mPalette = new uint[(int)PaletteIndex.Max];
@@ -23,7 +25,6 @@ public class TextEditor
         LanguageDefinition = LanguageDefinition.Lua;
         mLines.Add(new Line());
     }
-    // ~TextEditor();
 
     public LanguageDefinition LanguageDefinition
     {
@@ -36,7 +37,7 @@ public class TextEditor
             mLanguageDefinition = value;
             mRegexList.Clear();
 
-            foreach(var r in mLanguageDefinition.mTokenRegexStrings)
+            foreach (var r in mLanguageDefinition.mTokenRegexStrings)
                 mRegexList.Add(new Tuple<Regex, PaletteIndex>(new Regex(r.Item1, RegexOptions.None), r.Item2));
 
             Colorize();
@@ -80,17 +81,14 @@ public class TextEditor
         if (mHandleKeyboardInputs)
         {
             HandleKeyboardInputs();
-            //ImGui.PushAllowKeyboardFocus(true);
         }
 
         if (mHandleMouseInputs)
             HandleMouseInputs();
 
         ColorizeInternal();
-        Render();
 
-        /*if (mHandleKeyboardInputs)
-            ImGui.PopAllowKeyboardFocus();*/
+        Render();
 
         if (!mIgnoreImGuiChild)
             ImGui.EndChild();
@@ -105,7 +103,7 @@ public class TextEditor
     {
         mLines.Clear();
         mLines.Add(new Line());
-        foreach(var chr in aText)
+        foreach (var chr in aText)
         {
             if (chr == '\r')
             {
@@ -211,7 +209,7 @@ public class TextEditor
         mColorizerEnabled = aValue;
     }
 
-    public Coordinates GetCursorPosition()  { return GetActualCursorCoordinates(); }
+    public Coordinates GetCursorPosition() { return GetActualCursorCoordinates(); }
     public void SetCursorPosition(Coordinates aPosition)
     {
         if (mState.mCursorPosition != aPosition)
@@ -222,13 +220,13 @@ public class TextEditor
         }
     }
 
-    public void SetHandleMouseInputs    (bool aValue){ mHandleMouseInputs    = aValue;}
-    public bool IsHandleMouseInputsEnabled()  { return mHandleKeyboardInputs; }
+    public void SetHandleMouseInputs(bool aValue) { mHandleMouseInputs = aValue; }
+    public bool IsHandleMouseInputsEnabled() { return mHandleKeyboardInputs; }
 
-    public void SetHandleKeyboardInputs (bool aValue){ mHandleKeyboardInputs = aValue;}
+    public void SetHandleKeyboardInputs(bool aValue) { mHandleKeyboardInputs = aValue; }
     public bool IsHandleKeyboardInputsEnabled() { return mHandleKeyboardInputs; }
 
-    public void SetImGuiChildIgnored    (bool aValue){ mIgnoreImGuiChild     = aValue;}
+    public void SetImGuiChildIgnored(bool aValue) { mIgnoreImGuiChild = aValue; }
     public bool IsImGuiChildIgnored() { return mIgnoreImGuiChild; }
 
     public void SetShowWhitespaces(bool aValue) { mShowWhitespaces = aValue; }
@@ -523,7 +521,7 @@ public class TextEditor
         mState.SwapEndsIfNeeded();
     }
 
-    public void SetSelection( Coordinates aStart,  Coordinates aEnd, SelectionMode aMode = SelectionMode.Normal)
+    public void SetSelection(Coordinates aStart, Coordinates aEnd, SelectionMode aMode = SelectionMode.Normal)
     {
         var oldSelStart = mState.mSelectionStart;
         var oldSelEnd = mState.mSelectionEnd;
@@ -534,25 +532,25 @@ public class TextEditor
 
         switch (aMode)
         {
-        case SelectionMode.Normal:
-            break;
-        case SelectionMode.Word:
-        {
-            mState.mSelectionStart = FindWordStart(mState.mSelectionStart);
-            if (!IsOnWordBoundary(mState.mSelectionEnd))
-                mState.mSelectionEnd = FindWordEnd(FindWordStart(mState.mSelectionEnd));
-            break;
-        }
-        case SelectionMode.Line:
-        {
-            var lineNo = mState.mSelectionEnd.mLine;
-            var lineSize = lineNo < mLines.Count ? mLines[lineNo].Count : 0;
-            mState.mSelectionStart = new Coordinates(mState.mSelectionStart.mLine, 0);
-            mState.mSelectionEnd = new Coordinates(lineNo, GetLineMaxColumn(lineNo));
-            break;
-        }
-        default:
-            break;
+            case SelectionMode.Normal:
+                break;
+            case SelectionMode.Word:
+                {
+                    mState.mSelectionStart = FindWordStart(mState.mSelectionStart);
+                    if (!IsOnWordBoundary(mState.mSelectionEnd))
+                        mState.mSelectionEnd = FindWordEnd(FindWordStart(mState.mSelectionEnd));
+                    break;
+                }
+            case SelectionMode.Line:
+                {
+                    var lineNo = mState.mSelectionEnd.mLine;
+                    var lineSize = lineNo < mLines.Count ? mLines[lineNo].Count : 0;
+                    mState.mSelectionStart = new Coordinates(mState.mSelectionStart.mLine, 0);
+                    mState.mSelectionEnd = new Coordinates(lineNo, GetLineMaxColumn(lineNo));
+                    break;
+                }
+            default:
+                break;
         }
 
         if (mState.mSelectionStart != oldSelStart ||
@@ -591,7 +589,7 @@ public class TextEditor
             {
                 StringBuilder str = new();
                 var line = mLines[GetActualCursorCoordinates().mLine];
-                foreach(var g in line)
+                foreach (var g in line)
                     str.Append(g.mChar);
                 ImGui.SetClipboardText(str.ToString());
             }
@@ -718,16 +716,29 @@ public class TextEditor
     {
         return !mReadOnly && mUndoIndex < mUndoBuffer.Count;
     }
+
     public void Undo(int aSteps = 1)
     {
+        mSuppressUndo = true;
         while (CanUndo() && aSteps-- > 0)
-            mUndoBuffer[--mUndoIndex].Undo(this);
+        {
+            --mUndoIndex;
+            mUndoBuffer[mUndoIndex].Undo(this);
+        }
+        mSuppressUndo = false;
     }
+
     public void Redo(int aSteps = 1)
     {
+        mSuppressUndo = true;
         while (CanRedo() && aSteps-- > 0)
-            mUndoBuffer[mUndoIndex++].Redo(this);
+        {
+            mUndoBuffer[mUndoIndex].Redo(this);
+            ++mUndoIndex;
+        }
+        mSuppressUndo = false;
     }
+
 
     public static Palette GetDarkPalette()
     {
@@ -851,7 +862,7 @@ public class TextEditor
 
             var last = buffer.Length;
 
-            for (int first = 0; first < last; ) // was != last
+            for (int first = 0; first < last;) // was != last
             {
                 int token_begin = 0;
                 int token_end = 0;
@@ -861,7 +872,7 @@ public class TextEditor
 
                 if (mLanguageDefinition.mTokenize != null)
                 {
-                    if (mLanguageDefinition.mTokenize(buffer.ToString().Substring(first, last-first), ref token_begin, ref token_end, ref token_color))
+                    if (mLanguageDefinition.mTokenize(buffer.ToString().Substring(first, last - first), ref token_begin, ref token_end, ref token_color))
                         hasTokenizeResult = true;
                 }
 
@@ -870,10 +881,10 @@ public class TextEditor
                     // todo : remove
                     //printf("using regex for %.*s\n", first + 10 < last ? 10 : int(last - first), first);
 
-                    foreach(var p in mRegexList)
+                    foreach (var p in mRegexList)
                     {
                         var match = p.Item1.Match(buffer.ToString().Substring(first));
-                        if(match.Success)
+                        if (match.Success)
                         {
                             hasTokenizeResult = true;
                             token_begin = match.Captures[0].Index + first;
@@ -899,7 +910,7 @@ public class TextEditor
                         // todo : allmost all language definitions use lower case to specify keywords, so shouldn't this use ::tolower ?
                         if (!mLanguageDefinition.mCaseSensitive)
                             id = id.ToUpper();
-                            //std::transform(id.begin(), id.end(), id.begin(), ::toupper);
+                        //std::transform(id.begin(), id.end(), id.begin(), ::toupper);
 
                         if (!line[first].mPreprocessor)
                         {
@@ -1030,7 +1041,7 @@ public class TextEditor
                             bool equals(string a, Line line, int count)
                             {
                                 bool eq = true;
-                                for(int i = 0; i < a.Length && i < count; i++)
+                                for (int i = 0; i < a.Length && i < count; i++)
                                 {
                                     eq &= pred(a[i], line[i]);
                                 }
@@ -1111,7 +1122,7 @@ public class TextEditor
         //float spaceSize = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, " ", nullptr, nullptr).x;
         float spaceSize = ImGui.CalcTextSize(" ").X; // Not sure if that's correct
         int colIndex = GetCharacterIndex(aFrom);
-        for (int it = 0; it < line.Count && it < colIndex; )
+        for (int it = 0; it < line.Count && it < colIndex;)
         {
             if (line[it].mChar == '\t')
             {
@@ -1128,9 +1139,8 @@ public class TextEditor
                     tempCString[i] = line[it].mChar;
 
                 tempCString[i] = '\0';
-                if(l > 0)
-                    distance += ImGui.CalcTextSize(tempCString.AsSpan(0, l)).X; // Not sure if that's correct
-                //distance += ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, tempCString, nullptr, nullptr).x;
+                if (l > 0)
+                    distance += ImGui.CalcTextSize(new string(tempCString, 0, l)).X;
             }
         }
 
@@ -1266,10 +1276,8 @@ public class TextEditor
 
     internal void DeleteRange(Coordinates aStart, Coordinates aEnd)
     {
-        /*assert(aEnd >= aStart);
-        assert(!mReadOnly);*/
-
-        //printf("D(%d.%d)-(%d.%d)\n", aStart.mLine, aStart.mColumn, aEnd.mLine, aEnd.mColumn);
+        if (aStart.mLine >= mLines.Count || aEnd.mLine >= mLines.Count)
+            return;
 
         if (aEnd == aStart)
             return;
@@ -1310,42 +1318,50 @@ public class TextEditor
 
     internal int InsertTextAt(Coordinates aWhere, string aValue)
     {
-        // assert(!mReadOnly);
+        int totalLines = 0;
+
+        while (aWhere.mLine >= mLines.Count)
+            mLines.Add(new Line());
 
         int cindex = GetCharacterIndex(aWhere);
-        int totalLines = 0;
-        for(int i = 0; i < aValue.Length; i++)
+
+        for (int i = 0; i < aValue.Length; i++)
         {
             if (aValue[i] == '\r')
             {
-                // skip
                 continue;
             }
             else if (aValue[i] == '\n')
             {
-                if (cindex < mLines[aWhere.mLine].Count())
+                while (aWhere.mLine >= mLines.Count)
+                    mLines.Add(new Line());
+
+                var currentLine = mLines[aWhere.mLine];
+
+                if (cindex < currentLine.Count)
                 {
                     var newLine = InsertLine(aWhere.mLine + 1);
-                    var line = mLines[aWhere.mLine];
-                    newLine.AddRange(line.TakeLast(line.Count - cindex));
-                    
-                    line = line.TakeLast(line.Count - cindex).ToList();
+                    newLine.AddRange(currentLine.Skip(cindex));
+                    currentLine.RemoveRange(cindex, currentLine.Count - cindex);
                 }
                 else
                 {
                     InsertLine(aWhere.mLine + 1);
                 }
+
                 ++aWhere.mLine;
                 aWhere.mColumn = 0;
                 cindex = 0;
                 ++totalLines;
-                continue;
             }
             else
             {
+                while (aWhere.mLine >= mLines.Count)
+                    mLines.Add(new Line());
+
                 var line = mLines[aWhere.mLine];
                 var d = UTF8CharLength(aValue[i]);
-                while (d-- > 0 && aValue[i] != '\0')
+                while (d-- > 0 && i < aValue.Length && aValue[i] != '\0')
                     line.Insert(cindex++, new Glyph(aValue[i], PaletteIndex.Default));
                 ++aWhere.mColumn;
             }
@@ -1356,15 +1372,14 @@ public class TextEditor
         return totalLines;
     }
 
+
     void AddUndo(UndoRecord aValue)
     {
-        // assert(!mReadOnly);
-        //printf("AddUndo: (@%d.%d) +\'%s' [%d.%d .. %d.%d], -\'%s', [%d.%d .. %d.%d] (@%d.%d)\n",
-        //	aValue.mBefore.mCursorPosition.mLine, aValue.mBefore.mCursorPosition.mColumn,
-        //	aValue.mAdded.c_str(), aValue.mAddedStart.mLine, aValue.mAddedStart.mColumn, aValue.mAddedEnd.mLine, aValue.mAddedEnd.mColumn,
-        //	aValue.mRemoved.c_str(), aValue.mRemovedStart.mLine, aValue.mRemovedStart.mColumn, aValue.mRemovedEnd.mLine, aValue.mRemovedEnd.mColumn,
-        //	aValue.mAfter.mCursorPosition.mLine, aValue.mAfter.mCursorPosition.mColumn
-        //	);
+        if (mSuppressUndo)
+            return;
+
+        if (mUndoIndex < mUndoBuffer.Count)
+            mUndoBuffer.RemoveRange(mUndoIndex, mUndoBuffer.Count - mUndoIndex);
 
         mUndoBuffer.Add(aValue);
         ++mUndoIndex;
@@ -1595,7 +1610,7 @@ public class TextEditor
             return 0;
         var line = mLines[aLine];
         int col = 0;
-        for (int i = 0; i < line.Count; )
+        for (int i = 0; i < line.Count;)
         {
             var c = line[i].mChar;
             if (c == '\t')
@@ -1625,7 +1640,7 @@ public class TextEditor
 
     void RemoveLine(int aStart, int aEnd)
     {
-        for(int i = aStart; i < aEnd; i++)
+        for (int i = aStart; i < aEnd; i++)
             RemoveLine(aStart);
     }
 
@@ -1667,7 +1682,7 @@ public class TextEditor
         var result = mLines[aIndex];
 
         ErrorMarkers etmp = new();
-        foreach (var  i in mErrorMarkers)
+        foreach (var i in mErrorMarkers)
             etmp[i.Key >= aIndex ? i.Key + 1 : i.Key] = i.Value;
         mErrorMarkers = etmp;
 
@@ -1836,9 +1851,9 @@ public class TextEditor
                 }
 
                 int added = 0;
-                foreach(var c in buf)
+                foreach (var c in buf)
                 {
-                    if(c == '\0')
+                    if (c == '\0')
                         break;
                     line.Insert(cindex, new Glyph(c, PaletteIndex.Default));
                     added++;
@@ -1902,7 +1917,7 @@ public class TextEditor
                 prevLine = prevLine.Concat(line).ToList(); //insert(prevLine.end(), line.begin(), line.end());
 
                 ErrorMarkers etmp = new();
-                foreach(var i in mErrorMarkers)
+                foreach (var i in mErrorMarkers)
                     etmp[i.Key - 1 == mState.mCursorPosition.mLine ? i.Key - 1 : i.Key] = i.Value;
                 mErrorMarkers = etmp;
 
@@ -2015,55 +2030,55 @@ public class TextEditor
             io.WantCaptureKeyboard = true;
             io.WantTextInput = true;
 
-            if (!IsReadOnly && ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Z)))
+            if (!IsReadOnly && ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.Z))
                 Undo();
-            else if (!IsReadOnly && !ctrl && !shift && alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Backspace)))
+            else if (!IsReadOnly && !ctrl && !shift && alt && ImGui.IsKeyPressed(ImGuiKey.Backspace))
                 Undo();
-            else if (!IsReadOnly && ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Y)))
+            else if (!IsReadOnly && ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.Y))
                 Redo();
-            else if (!ctrl && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.UpArrow)))
+            else if (!ctrl && !alt && ImGui.IsKeyPressed(ImGuiKey.UpArrow))
                 MoveUp(1, shift);
-            else if (!ctrl && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.DownArrow)))
+            else if (!ctrl && !alt && ImGui.IsKeyPressed(ImGuiKey.DownArrow))
                 MoveDown(1, shift);
-            else if (!alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.LeftArrow)))
+            else if (!alt && ImGui.IsKeyPressed(ImGuiKey.LeftArrow))
                 MoveLeft(1, shift, ctrl);
-            else if (!alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.RightArrow)))
+            else if (!alt && ImGui.IsKeyPressed(ImGuiKey.RightArrow))
                 MoveRight(1, shift, ctrl);
-            else if (!alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageUp)))
+            else if (!alt && ImGui.IsKeyPressed(ImGuiKey.PageUp))
                 MoveUp(GetPageSize() - 4, shift);
-            else if (!alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.PageDown)))
+            else if (!alt && ImGui.IsKeyPressed(ImGuiKey.PageDown))
                 MoveDown(GetPageSize() - 4, shift);
-            else if (!alt && ctrl && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Home)))
+            else if (!alt && ctrl && ImGui.IsKeyPressed(ImGuiKey.Home))
                 MoveTop(shift);
-            else if (ctrl && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.End)))
+            else if (ctrl && !alt && ImGui.IsKeyPressed(ImGuiKey.End))
                 MoveBottom(shift);
-            else if (!ctrl && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Home)))
+            else if (!ctrl && !alt && ImGui.IsKeyPressed(ImGuiKey.Home))
                 MoveHome(shift);
-            else if (!ctrl && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.End)))
+            else if (!ctrl && !alt && ImGui.IsKeyPressed(ImGuiKey.End))
                 MoveEnd(shift);
-            else if (!IsReadOnly && !ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Delete)))
+            else if (!IsReadOnly && !ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.Delete))
                 Delete();
-            else if (!IsReadOnly && !ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Backspace)))
+            else if (!IsReadOnly && !ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.Backspace))
                 Backspace();
-            else if (!ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Insert)))
+            else if (!ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.Insert))
                 mOverwrite ^= true;
-            else if (ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Insert)))
+            else if (ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.Insert))
                 Copy();
-            else if (ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.C)))
+            else if (ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.C))
                 Copy();
-            else if (!IsReadOnly && !ctrl && shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Insert)))
+            else if (!IsReadOnly && !ctrl && shift && !alt && ImGui.IsKeyPressed(ImGuiKey.Insert))
                 Paste();
-            else if (!IsReadOnly && ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.V)))
+            else if (!IsReadOnly && ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.V))
                 Paste();
-            else if (ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.X)))
+            else if (ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.X))
                 Cut();
-            else if (!ctrl && shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Delete)))
+            else if (!ctrl && shift && !alt && ImGui.IsKeyPressed(ImGuiKey.Delete))
                 Cut();
-            else if (ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.A)))
+            else if (ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.A))
                 SelectAll();
-            else if (!IsReadOnly && !ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Enter)))
+            else if (!IsReadOnly && !ctrl && !shift && !alt && ImGui.IsKeyPressed(ImGuiKey.Enter))
                 EnterCharacter('\n', false);
-            else if (!IsReadOnly && !ctrl && !alt && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Tab)))
+            else if (!IsReadOnly && !ctrl && !alt && ImGui.IsKeyPressed(ImGuiKey.Tab))
                 EnterCharacter('\t', shift);
 
             if (!IsReadOnly && io.InputQueueCharacters.Size != 0)
@@ -2091,8 +2106,8 @@ public class TextEditor
         {
             if (!shift && !alt)
             {
-                var click = ImGui.IsMouseClicked(0);
-                var doubleClick = ImGui.IsMouseDoubleClicked(0);
+                var click = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
+                var doubleClick = ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left);
                 var t = ImGui.GetTime();
                 var tripleClick = click && !doubleClick && (mLastClick != -1.0f && (t - mLastClick) < io.MouseDoubleClickTime);
 
@@ -2146,7 +2161,7 @@ public class TextEditor
                     mLastClick = (float)ImGui.GetTime();
                 }
                 // Mouse left button dragging (=> update selection)
-                else if (ImGui.IsMouseDragging(0) && ImGui.IsMouseDown(0))
+                else if (ImGui.IsMouseDragging(ImGuiMouseButton.Left) && ImGui.IsMouseDown(ImGuiMouseButton.Left))
                 {
                     io.WantCaptureMouse = true;
                     mState.mCursorPosition = mInteractiveEnd = ScreenPosToCoordinates(ImGui.GetMousePos());
@@ -2307,7 +2322,7 @@ public class TextEditor
                                     buf2[0] = line[cindex].mChar;
                                     buf2[1] = '\0';
                                     //width = ImGui.GetFont()->CalcTextSizeA(ImGui.GetFontSize(), FLT_MAX, -1.0f, buf2).x;
-                                    width = ImGui.CalcTextSize(buf2).X;
+                                    width = ImGui.CalcTextSize(new string(buf2)).X;
                                 }
                             }
                             Vector2 cstart = new(textScreenPos.X + cx, lineStartScreenPos.Y);
@@ -2446,9 +2461,9 @@ public class TextEditor
     float mTextStart = 20.0f;                   // position (in pixels) where a code line starts relative to the left of the TextEditor.
 
     // This is directly from original code
-    #pragma warning disable CS0414
-    int  mLeftMargin = 10;
-    #pragma warning restore CS0414
+#pragma warning disable CS0414
+    int mLeftMargin = 10;
+#pragma warning restore CS0414
 
     bool mCursorPositionChanged = false;
     int mColorRangeMin = 0, mColorRangeMax = 0;

@@ -1,4 +1,4 @@
-namespace ImGuiCodeEditor;
+namespace DalamudCodeEditor;
 
 // Represents a character coordinate from the user's point of view,
 // i. e. consider an uniform grid (assuming fixed-width font) on the
@@ -64,7 +64,7 @@ public class Coordinates
 
     public override bool Equals(object? obj)
     {
-        if(obj == null)
+        if (obj == null)
             return false;
         Coordinates? a = (Coordinates?)obj!;
         return a == this;

@@ -1,15 +1,10 @@
-namespace ImGuiCodeEditor;
+namespace DalamudCodeEditor;
 
-using Silk.NET.Vulkan;
-using Identifiers = Dictionary<string, Identifier>; 
+using Identifiers = Dictionary<string, Identifier>;
 using Keywords = List<string>;
 
 public class LanguageDefinition
 {
-    //typedef std::pair<std::string, PaletteIndex> TokenRegexString;
-    //List<(string, PaletteIndex)> TokenRegexStrings;
-    //typedef bool(*TokenizeCallback)(const char * in_begin, const char * in_end, const char *& out_begin, const char *& out_end, PaletteIndex & paletteIndex);
-
     public delegate bool TokenizeCallback(string line, ref int token_begin, ref int token_end, ref PaletteIndex token_color);
 
     public string mName = "";
@@ -27,13 +22,6 @@ public class LanguageDefinition
     public bool mCaseSensitive = true;
 
     public LanguageDefinition() { }
-
-    /*public static LanguageDefinition CPlusPlus();
-    public static LanguageDefinition HLSL();
-    public static LanguageDefinition GLSL();
-    public static LanguageDefinition C();
-    public static LanguageDefinition SQL();
-    public static LanguageDefinition AngelScript();*/
     public static LanguageDefinition Lua
     {
         get
@@ -44,7 +32,7 @@ public class LanguageDefinition
                 "and", "break", "do", "", "else", "elseif", "end", "false", "for", "function", "if", "in", "", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"
             ];
 
-            foreach(var k in keywords)
+            foreach (var k in keywords)
                 langDef.mKeywords.Add(k);
 
             string[] identifiers = [
