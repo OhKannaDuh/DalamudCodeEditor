@@ -1,8 +1,8 @@
 namespace DalamudCodeEditor;
 
 /// <summary>
-/// Represents the type of token or editor element being colorized.
-/// The order matters for indexing into the highlight palette.
+///     Represents the type of token or editor element being colorized.
+///     The order matters for indexing into the highlight palette.
 /// </summary>
 public enum PaletteIndex
 {
@@ -30,5 +30,5 @@ public enum PaletteIndex
     CurrentLineEdge,
 
     // === Reserved / Internal Use ===
-    Max,
+    Max
 }

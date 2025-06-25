@@ -9,8 +9,12 @@ namespace DalamudCodeEditor;
 // because it is rendered as "    ABC" on the screen.
 public class Coordinates
 {
-    public int mLine = 0, mColumn = 0;
-    public Coordinates() { }
+    public int mLine, mColumn;
+
+    public Coordinates()
+    {
+    }
+
     public Coordinates(int aLine, int aColumn)
     {
         mLine = aLine;
@@ -18,7 +22,11 @@ public class Coordinates
         // assert(aLine >= 0);
         // assert(aColumn >= 0);
     }
-    static Coordinates Invalid() { return new Coordinates(-1, -1); }
+
+    private static Coordinates Invalid()
+    {
+        return new Coordinates(-1, -1);
+    }
 
     public static bool operator ==(Coordinates a, Coordinates o)
     {
@@ -66,7 +74,7 @@ public class Coordinates
     {
         if (obj == null)
             return false;
-        Coordinates? a = (Coordinates?)obj!;
+        var a = (Coordinates?)obj!;
         return a == this;
     }
 

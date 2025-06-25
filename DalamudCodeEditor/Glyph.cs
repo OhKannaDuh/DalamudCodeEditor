@@ -8,7 +8,7 @@ public struct Glyph
     public bool mMultiLineComment = false;
     public bool mPreprocessor = false;
 
-    public Glyph(Char aChar, PaletteIndex aColorIndex)
+    public Glyph(char aChar, PaletteIndex aColorIndex)
     {
         mChar = aChar;
         mColorIndex = aColorIndex;

@@ -2,7 +2,9 @@ namespace DalamudCodeEditor;
 
 public struct EditorState
 {
-    public EditorState() { }
+    public EditorState()
+    {
+    }
 
     public Coordinates mSelectionStart = new();
     public Coordinates mSelectionEnd = new();

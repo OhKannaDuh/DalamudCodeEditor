@@ -36,10 +36,10 @@ public class LuaLanguageDefinition : LanguageDefinition
 
     private IEnumerable<Token> TokenizeLuaLine(string line)
     {
-        int i = 0;
+        var i = 0;
         while (i < line.Length)
         {
-            char c = line[i];
+            var c = line[i];
 
             // Skip whitespace
             if (char.IsWhiteSpace(c))
@@ -48,12 +48,12 @@ public class LuaLanguageDefinition : LanguageDefinition
                 continue;
             }
 
-            int start = i;
+            var start = i;
 
             // Long string / multiline comment
             if (c == '[' && i + 1 < line.Length && line[i + 1] == '[')
             {
-                int end = line.IndexOf("]]", i + 2);
+                var end = line.IndexOf("]]", i + 2);
                 end = end == -1 ? line.Length : end + 2;
                 yield return new Token(i, end, PaletteIndex.String);
                 i = end;
@@ -70,14 +70,23 @@ public class LuaLanguageDefinition : LanguageDefinition
             // Strings
             if (c == '"' || c == '\'')
             {
-                char quote = c;
+                var quote = c;
                 i++;
                 while (i < line.Length)
-                {
-                    if (line[i] == '\\') i += 2;
-                    else if (line[i] == quote) { i++; break; }
-                    else i++;
-                }
+                    if (line[i] == '\\')
+                    {
+                        i += 2;
+                    }
+                    else if (line[i] == quote)
+                    {
+                        i++;
+                        break;
+                    }
+                    else
+                    {
+                        i++;
+                    }
+
                 yield return new Token(start, i, PaletteIndex.String);
                 continue;
             }
@@ -97,30 +106,34 @@ public class LuaLanguageDefinition : LanguageDefinition
             {
                 while (i < line.Length)
                 {
-                    int partStart = i;
+                    var partStart = i;
 
                     // Identifier
                     while (i < line.Length && (char.IsLetterOrDigit(line[i]) || line[i] == '_'))
                         i++;
 
-                    int partEnd = i;
-                    string ident = line.Substring(partStart, partEnd - partStart);
-                    string lookup = CaseSensitive ? ident : ident.ToLower();
+                    var partEnd = i;
+                    var ident = line.Substring(partStart, partEnd - partStart);
+                    var lookup = CaseSensitive ? ident : ident.ToLower();
 
                     PaletteIndex kind;
 
                     if (Keywords.Contains(lookup))
+                    {
                         kind = PaletteIndex.Keyword;
+                    }
                     else if (Identifiers.ContainsKey(lookup))
+                    {
                         kind = PaletteIndex.KnownIdentifier;
+                    }
                     else
                     {
                         // Look ahead to see if it's a function call (skip whitespace)
-                        int lookahead = i;
+                        var lookahead = i;
                         while (lookahead < line.Length && char.IsWhiteSpace(line[lookahead]))
                             lookahead++;
 
-                        kind = (lookahead < line.Length && line[lookahead] == '(')
+                        kind = lookahead < line.Length && line[lookahead] == '('
                             ? PaletteIndex.Function
                             : PaletteIndex.Identifier;
                     }
