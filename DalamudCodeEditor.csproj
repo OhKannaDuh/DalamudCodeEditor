@@ -2,6 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
+        <PackageId>ImGuiColorTextEditNetDalamud</PackageId>
+        <Version>0.3.0</Version>
         <OutputType>Library</OutputType>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

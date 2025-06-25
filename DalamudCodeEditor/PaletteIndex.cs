@@ -1,27 +1,34 @@
 namespace DalamudCodeEditor;
 
+/// <summary>
+/// Represents the type of token or editor element being colorized.
+/// The order matters for indexing into the highlight palette.
+/// </summary>
 public enum PaletteIndex
 {
+    // === Syntax Elements ===
     Default = 0,
     Keyword,
-    Number,
-    String,
-    CharLiteral,
-    Punctuation,
-    Preprocessor,
     Identifier,
     KnownIdentifier,
-    PreprocIdentifier,
+    Function,
+    Number,
+    String,
     Comment,
     MultiLineComment,
+    Preprocessor,
+    PreprocessorIdentifier,
+    Punctuation,
+
+    // === Editor UI Elements ===
     Background,
     Cursor,
     Selection,
-    ErrorMarker,
-    Breakpoint,
     LineNumber,
     CurrentLineFill,
     CurrentLineFillInactive,
     CurrentLineEdge,
-    Max
+
+    // === Reserved / Internal Use ===
+    Max,
 }
