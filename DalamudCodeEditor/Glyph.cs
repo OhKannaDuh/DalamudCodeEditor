@@ -1,16 +1,14 @@
 namespace DalamudCodeEditor;
 
-public struct Glyph
+public struct Glyph(char character, PaletteIndex colorIndex = PaletteIndex.Default)
 {
-    public char mChar;
-    public PaletteIndex mColorIndex = PaletteIndex.Default;
-    public bool mComment = false;
-    public bool mMultiLineComment = false;
-    public bool mPreprocessor = false;
+    public readonly char Character = character;
 
-    public Glyph(char aChar, PaletteIndex aColorIndex)
-    {
-        mChar = aChar;
-        mColorIndex = aColorIndex;
-    }
+    public PaletteIndex ColorIndex = colorIndex;
+
+    public bool Comment = false;
+
+    public bool MultiLineComment = false;
+
+    public bool Preprocessor = false;
 }

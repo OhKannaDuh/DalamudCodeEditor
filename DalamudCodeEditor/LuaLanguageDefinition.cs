@@ -4,7 +4,6 @@ public class LuaLanguageDefinition : LanguageDefinition
 {
     public LuaLanguageDefinition()
     {
-        Name = "Lua";
         CommentStart = "--[[";
         CommentEnd = "]]";
         SingleLineComment = "--";
@@ -15,7 +14,7 @@ public class LuaLanguageDefinition : LanguageDefinition
         Keywords.AddRange([
             "and", "break", "do", "else", "elseif", "end", "false", "for",
             "function", "goto", "if", "in", "local", "nil", "not", "or",
-            "repeat", "return", "then", "true", "until", "while"
+            "repeat", "return", "then", "true", "until", "while",
         ]);
 
         var builtins = new[]
@@ -25,11 +24,13 @@ public class LuaLanguageDefinition : LanguageDefinition
             "pairs", "pcall", "print", "rawequal", "rawget", "rawlen", "rawset",
             "select", "setmetatable", "tonumber", "tostring", "type", "xpcall",
             "require", "module", "coroutine", "table", "string", "math", "utf8",
-            "io", "os", "debug", "package", "self", "..."
+            "io", "os", "debug", "package", "self", "...",
         };
 
         foreach (var ident in builtins)
-            Identifiers[ident] = new Identifier { mDeclaration = "Built-in" };
+        {
+            Identifiers[ident] = new Identifier { Declaration = "Built-in" };
+        }
 
         TokenizeLine = TokenizeLuaLine;
     }
@@ -73,6 +74,7 @@ public class LuaLanguageDefinition : LanguageDefinition
                 var quote = c;
                 i++;
                 while (i < line.Length)
+                {
                     if (line[i] == '\\')
                     {
                         i += 2;
@@ -86,17 +88,21 @@ public class LuaLanguageDefinition : LanguageDefinition
                     {
                         i++;
                     }
+                }
 
                 yield return new Token(start, i, PaletteIndex.String);
                 continue;
             }
 
             // Numbers
-            if (char.IsDigit(c) || (c == '.' && i + 1 < line.Length && char.IsDigit(line[i + 1])))
+            if (char.IsDigit(c) || c == '.' && i + 1 < line.Length && char.IsDigit(line[i + 1]))
             {
                 i++;
                 while (i < line.Length && (char.IsLetterOrDigit(line[i]) || line[i] == '.'))
+                {
                     i++;
+                }
+
                 yield return new Token(start, i, PaletteIndex.Number);
                 continue;
             }
@@ -110,7 +116,9 @@ public class LuaLanguageDefinition : LanguageDefinition
 
                     // Identifier
                     while (i < line.Length && (char.IsLetterOrDigit(line[i]) || line[i] == '_'))
+                    {
                         i++;
+                    }
 
                     var partEnd = i;
                     var ident = line.Substring(partStart, partEnd - partStart);
@@ -131,7 +139,9 @@ public class LuaLanguageDefinition : LanguageDefinition
                         // Look ahead to see if it's a function call (skip whitespace)
                         var lookahead = i;
                         while (lookahead < line.Length && char.IsWhiteSpace(line[lookahead]))
+                        {
                             lookahead++;
+                        }
 
                         kind = lookahead < line.Length && line[lookahead] == '('
                             ? PaletteIndex.Function

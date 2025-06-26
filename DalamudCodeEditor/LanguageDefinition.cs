@@ -4,8 +4,6 @@ namespace DalamudCodeEditor;
 
 public class LanguageDefinition
 {
-    public string Name { get; init; } = "";
-
     public List<string> Keywords { get; } = new();
 
     public Dictionary<string, Identifier> Identifiers { get; } = new();

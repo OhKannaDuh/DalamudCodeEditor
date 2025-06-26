@@ -8,27 +8,44 @@ public enum PaletteIndex
 {
     // === Syntax Elements ===
     Default = 0,
+
     Keyword,
+
     Identifier,
+
     KnownIdentifier,
+
     Function,
+
     Number,
+
     String,
+
     Comment,
+
     MultiLineComment,
+
     Preprocessor,
+
     PreprocessorIdentifier,
+
     Punctuation,
 
     // === Editor UI Elements ===
     Background,
+
     Cursor,
+
     Selection,
+
     LineNumber,
+
     CurrentLineFill,
+
     CurrentLineFillInactive,
+
     CurrentLineEdge,
 
     // === Reserved / Internal Use ===
-    Max
+    Max,
 }

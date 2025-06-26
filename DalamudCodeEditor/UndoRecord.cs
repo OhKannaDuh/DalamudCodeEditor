@@ -1,72 +1,60 @@
+using DalamudCodeEditor.TextEditor;
+
 namespace DalamudCodeEditor;
 
-public class UndoRecord
+public class UndoRecord()
 {
-    public string mAdded = "";
-    public Coordinates mAddedEnd = new();
-    public Coordinates mAddedStart = new();
-    public EditorState mAfter = new();
+    public string Added = "";
 
-    public EditorState mBefore = new();
+    public Coordinate AddedEnd = new();
 
-    public string mRemoved = "";
-    public Coordinates mRemovedEnd = new();
-    public Coordinates mRemovedStart = new();
+    public Coordinate AddedStart = new();
 
-    public UndoRecord()
+    public State After;
+
+    public State Before;
+
+    public string Removed = "";
+
+    public Coordinate RemovedEnd = new();
+
+    public Coordinate RemovedStart = new();
+
+    public void Undo(Editor editor)
     {
-    }
-    //~UndoRecord() {}
+        editor.State = Before;
 
-    public UndoRecord(
-        string aAdded,
-        Coordinates aAddedStart,
-        Coordinates aAddedEnd,
-        string aRemoved,
-        Coordinates aRemovedStart,
-        Coordinates aRemovedEnd,
-        ref EditorState aBefore,
-        ref EditorState aAfter)
-    {
-        mAdded = aAdded;
-        mAddedStart = aAddedStart;
-        mAddedEnd = aAddedEnd;
+        if (!string.IsNullOrEmpty(Added))
+        {
+            editor.DeleteRange(AddedStart, AddedEnd);
+        }
 
-        mRemoved = aRemoved;
-        mRemovedStart = aRemovedStart;
-        mRemovedEnd = aRemovedEnd;
+        if (!string.IsNullOrEmpty(Removed))
+        {
+            editor.InsertTextAt(RemovedStart, Removed);
+        }
 
-        mBefore = aBefore;
-        mAfter = aAfter;
+        editor.Colorizer.Colorize(Math.Max(0, RemovedStart.Line - 1),
+            Math.Max(1, RemovedEnd.Line - RemovedStart.Line + 2));
+        editor.Cursor.EnsureVisible();
     }
 
-    public void Undo(TextEditor editor)
+    public void Redo(Editor editor)
     {
-        editor.mState = mBefore;
+        editor.State = After;
 
-        if (!string.IsNullOrEmpty(mAdded))
-            editor.DeleteRange(mAddedStart, mAddedEnd);
+        if (!string.IsNullOrEmpty(Removed))
+        {
+            editor.DeleteRange(RemovedStart, RemovedEnd);
+        }
 
-        if (!string.IsNullOrEmpty(mRemoved))
-            editor.InsertTextAt(mRemovedStart, mRemoved);
+        if (!string.IsNullOrEmpty(Added))
+        {
+            editor.InsertTextAt(AddedStart, Added);
+        }
 
-        editor.Colorize(Math.Max(0, mRemovedStart.mLine - 1),
-            Math.Max(1, mRemovedEnd.mLine - mRemovedStart.mLine + 2));
-        editor.EnsureCursorVisible();
-    }
-
-    public void Redo(TextEditor editor)
-    {
-        editor.mState = mAfter;
-
-        if (!string.IsNullOrEmpty(mRemoved))
-            editor.DeleteRange(mRemovedStart, mRemovedEnd);
-
-        if (!string.IsNullOrEmpty(mAdded))
-            editor.InsertTextAt(mAddedStart, mAdded);
-
-        editor.Colorize(Math.Max(0, mAddedStart.mLine - 1),
-            Math.Max(1, mAddedEnd.mLine - mAddedStart.mLine + 2));
-        editor.EnsureCursorVisible();
+        editor.Colorizer.Colorize(Math.Max(0, AddedStart.Line - 1),
+            Math.Max(1, AddedEnd.Line - AddedStart.Line + 2));
+        editor.Cursor.EnsureVisible();
     }
 }

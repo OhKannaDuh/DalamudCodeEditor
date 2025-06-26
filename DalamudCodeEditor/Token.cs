@@ -1,15 +1,10 @@
 namespace DalamudCodeEditor;
 
-public readonly struct Token
+public readonly struct Token(int start, int end, PaletteIndex color)
 {
-    public int Start { get; }
-    public int End { get; }
-    public PaletteIndex Color { get; }
+    public int Start { get; } = start;
 
-    public Token(int start, int end, PaletteIndex color)
-    {
-        Start = start;
-        End = end;
-        Color = color;
-    }
+    public int End { get; } = end;
+
+    public PaletteIndex Color { get; } = color;
 }

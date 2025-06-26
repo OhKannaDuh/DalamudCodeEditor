@@ -33,12 +33,14 @@ public static class PaletteBuilder
             Entry(PaletteIndex.CurrentLineEdge, 0.4f, 0.4f, 0.5f, 0.25f),
 
             // === Reserved ===
-            Entry(PaletteIndex.Max, 1f, 0f, 0f, 1f)
+            Entry(PaletteIndex.Max, 1f, 0f, 0f, 1f),
         };
 
         var palette = new uint[Enum.GetValues(typeof(PaletteIndex)).Length];
         foreach (var entry in entries)
+        {
             palette[(int)entry.Index] = entry.Color;
+        }
 
         return palette;
     }
@@ -71,12 +73,14 @@ public static class PaletteBuilder
             Entry(PaletteIndex.CurrentLineEdge, 0x403c4048),
 
             // === Reserved ===
-            Entry(PaletteIndex.Max, 0xffb0b3b8)
+            Entry(PaletteIndex.Max, 0xffb0b3b8),
         };
 
         var palette = new uint[Enum.GetValues(typeof(PaletteIndex)).Length];
         foreach (var entry in entries)
+        {
             palette[(int)entry.Index] = entry.Color;
+        }
 
         return palette;
     }
@@ -111,6 +115,7 @@ public static class PaletteBuilder
     public class PaletteEntry(PaletteIndex index, uint color)
     {
         public PaletteIndex Index { get; } = index;
+
         public uint Color { get; } = color;
     }
 }
