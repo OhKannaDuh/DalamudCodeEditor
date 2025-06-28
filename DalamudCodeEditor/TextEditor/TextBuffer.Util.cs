@@ -214,7 +214,7 @@ public partial class TextBuffer
 
         return col;
     }
-    
+
     public bool IsOnWordBoundary(Coordinate aAt)
     {
         if (aAt.Line >= lines.Count || aAt.Column == 0)

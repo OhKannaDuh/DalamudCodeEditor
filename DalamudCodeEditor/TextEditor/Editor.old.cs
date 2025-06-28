@@ -5,7 +5,6 @@ using ImGuiNET;
 
 namespace DalamudCodeEditor.TextEditor;
 
-
 public partial class Editor
 {
     // public long mStartTime;
@@ -57,7 +56,7 @@ public partial class Editor
             }
         });
     }
-    
+
 
     internal void DeleteRange(Coordinate aStart, Coordinate aEnd)
     {
