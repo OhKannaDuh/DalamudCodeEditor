@@ -18,4 +18,14 @@ public class Style(Editor editor) : EditorComponent(editor)
     public bool ApplySyntaxHighlighting { get; private set; } = true;
 
     public float LineSpacing { get; private set; } = 1;
+
+    public void ToggleLineNumbers()
+    {
+        ShowLineNumbers ^= true;
+    }
+
+    public void ToggleWhitespace()
+    {
+        ShowWhitespace ^= true;
+    }
 }

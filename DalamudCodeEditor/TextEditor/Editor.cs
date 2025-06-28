@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Dalamud.Interface.Utility.Raii;
@@ -30,8 +31,12 @@ public partial class Editor
 
     public State State;
 
+    public long StartTime;
+
     // Properties
     public bool IsReadOnly { get; private set; }
+
+    public bool IsOverwrite { get; private set; }
 
     public Editor()
     {
@@ -50,20 +55,7 @@ public partial class Editor
         InputManager.Keyboard.InitializeKeyboardBindings();
         Language = new LuaLanguageDefinition();
 
-        mPalette = new uint[(int)PaletteIndex.Max];
-        Palette = PaletteBuilder.GetDarkPalette();
-    }
-
-    public void SetText(string text)
-    {
-        Buffer.SetText(text);
-
-        ColorizeInternal();
-    }
-
-    public string GetText()
-    {
-        return Buffer.GetText();
+        Colorizer.Colorize();
     }
 
     public void Draw(string title, Vector2 size = new())
@@ -72,24 +64,26 @@ public partial class Editor
         Buffer.MarkClean();
         Cursor.MarkClean();
 
-
-        // var paletteColor = mPalette[(int)PaletteIndex.Background];
-        // // @todo: Check if this can just handle the raw uint
-        // using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.ColorConvertU32ToFloat4(paletteColor));
-
-        // @todo: change mPallette cringe
-        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, mPalette[(int)PaletteIndex.Background]);
+        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, Palette.Background);
         using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
         using var child = ImRaii.Child(title, size, Style.DrawBorder, Style.EditorFlags);
 
         // Handle inputs within the child window
-        HandleKeyboardInputs(); // InputManager.Keyboard.HandleInput();
+        InputManager.Keyboard.HandleInput();
         InputManager.Mouse.HandleInput();
-        ColorizeInternal();
 
-        Render(); // Renderer.Render();
+        Colorizer.Colorize();
+        Colorizer.ProcessColorizationQueue();
+
+        Renderer.Render();
 
         Scroll.ScrollToCursor();
         Renderer.End();
+    }
+
+    // This is Insert mode
+    public void ToggleOverwrite()
+    {
+        IsOverwrite = !IsOverwrite;
     }
 }

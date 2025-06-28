@@ -64,54 +64,193 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
         }
     }
 
-    public void MoveUp(int lines = 1)
+    private void MoveCursor(Func<Coordinate, Coordinate> movementFunc, bool ensureVisible = true)
     {
         var shift = InputManager.Keyboard.Shift;
+        var previous = GetPosition();
+        var newPosition = movementFunc(previous);
 
-        var previous = State.CursorPosition;
-        State.CursorPosition.Line = Math.Max(0, State.CursorPosition.Line - lines);
-        if (previous == State.CursorPosition)
+        if (newPosition == previous)
         {
             return;
         }
+
+        SetPosition(newPosition);
 
         if (shift)
         {
             if (previous == Selection.Start)
             {
-                Selection.SetStart(Cursor.GetPosition());
+                Selection.SetStart(GetPosition());
             }
             else if (previous == Selection.End)
             {
-                Selection.SetEnd(Cursor.GetPosition());
+                Selection.SetEnd(GetPosition());
             }
             else
             {
-                Selection.SetStart(Cursor.GetPosition());
-                Selection.SetEnd(previous);
+                Selection.SetStart(previous);
+                Selection.SetEnd(GetPosition());
             }
         }
         else
         {
-            Selection.SetToPoint(Cursor.GetPosition());
+            Selection.SetToPoint(GetPosition());
         }
 
         State.SetSelection(Selection.Start, Selection.End);
-        Cursor.EnsureVisible();
+
+        if (ensureVisible)
+        {
+            EnsureVisible();
+        }
     }
 
-    public void MoveTop()
+    public void MoveUp(int lines = 1)
     {
-        MoveUp(Renderer.GetPageSize() - 4);
+        MoveCursor(pos => new Coordinate(Math.Max(0, pos.Line - lines), pos.Column));
     }
 
     public void MoveDown(int lines = 1)
     {
-        var shift = InputManager.Keyboard.Shift;
+        MoveCursor(pos => new Coordinate(
+            Math.Min(Buffer.GetLines().Count - 1, pos.Line + lines),
+            pos.Column));
+    }
+
+    public void PageUp()
+    {
+        MoveUp(Renderer.GetPageSize() - 4);
+    }
+
+    public void PageDown()
+    {
+        MoveDown(Renderer.GetPageSize() - 4);
+    }
+
+    public void MoveTop()
+    {
+        MoveCursor(pos => new Coordinate(0, 0));
     }
 
     public void MoveBottom()
     {
-        MoveUp(Renderer.GetPageSize() - 4);
+        var lastLine = Math.Max(0, Buffer.GetLines().Count - 1);
+        var lastCol = Buffer.GetLineMaxColumn(lastLine);
+        MoveCursor(pos => new Coordinate(lastLine, lastCol));
+    }
+
+    public void MoveLeft(int chars = 1)
+    {
+        var ctrl = InputManager.Keyboard.Ctrl;
+        var shift = InputManager.Keyboard.Shift;
+
+        MoveCursor(pos =>
+        {
+            var line = pos.Line;
+            var cindex = Buffer.GetCharacterIndex(pos);
+
+            var amount = chars;
+
+            while (amount-- > 0)
+            {
+                if (cindex == 0)
+                {
+                    if (line > 0)
+                    {
+                        --line;
+                        if (Buffer.GetLines().Count > line)
+                        {
+                            cindex = Buffer.GetLines()[line].Count;
+                        }
+                        else
+                        {
+                            cindex = 0;
+                        }
+                    }
+                    else
+                    {
+                        // At beginning of buffer: stop moving left
+                        break;
+                    }
+                }
+                else
+                {
+                    --cindex;
+                    while (cindex > 0 && Utf8Helper.IsUTFSequence(Buffer.GetLines()[line][cindex].Character))
+                    {
+                        --cindex;
+                    }
+                }
+            }
+
+            var newPos = new Coordinate(line, Buffer.GetCharacterColumn(line, cindex));
+
+            if (ctrl)
+            {
+                newPos = Buffer.FindWordStart(newPos);
+            }
+
+            return newPos.Sanitized(editor);
+        }, shift);
+    }
+
+    public void MoveRight(int chars = 1)
+    {
+        var ctrl = InputManager.Keyboard.Ctrl;
+        var shift = InputManager.Keyboard.Shift;
+
+        MoveCursor(pos =>
+        {
+            var line = pos.Line;
+            var cindex = Buffer.GetCharacterIndex(pos);
+            var amount = chars;
+
+            while (amount-- > 0)
+            {
+                var currentLine = Buffer.GetLines()[line];
+
+                if (cindex >= currentLine.Count)
+                {
+                    if (line < Buffer.GetLines().Count - 1)
+                    {
+                        ++line;
+                        cindex = 0;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    cindex += Utf8Helper.UTF8CharLength(currentLine[cindex].Character);
+                }
+            }
+
+            var newPos = new Coordinate(line, Buffer.GetCharacterColumn(line, cindex));
+
+            if (ctrl)
+            {
+                newPos = Buffer.FindWordEnd(newPos);
+            }
+
+            return newPos.Sanitized(editor);
+        }, shift);
+    }
+
+
+    public void MoveHome()
+    {
+        MoveCursor(pos => new Coordinate(pos.Line, 0));
+    }
+
+    public void MoveEnd()
+    {
+        MoveCursor(pos =>
+        {
+            var maxCol = Buffer.GetLineMaxColumn(pos.Line);
+            return new Coordinate(pos.Line, maxCol);
+        });
     }
 }

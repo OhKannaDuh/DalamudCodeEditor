@@ -37,19 +37,11 @@ public class Clipboard(Editor editor) : EditorComponent(editor)
 
         if (Selection.HasSelection)
         {
-            var u = new UndoRecord
+            UndoManager.Create(() =>
             {
-                Before = State.Clone(),
-                Removed = Selection.Text,
-                RemovedStart = State.SelectionStart,
-                RemovedEnd = State.SelectionEnd,
-            };
-
-            Copy();
-            editor.DeleteSelection();
-
-            u.After = State.Clone();
-            UndoManager.AddUndo(u);
+                Copy();
+                editor.DeleteSelection();
+            });
         }
     }
 
@@ -63,25 +55,15 @@ public class Clipboard(Editor editor) : EditorComponent(editor)
         var clipText = ImGui.GetClipboardText();
         if (!string.IsNullOrEmpty(clipText))
         {
-            var u = new UndoRecord
+            UndoManager.Create(() =>
             {
-                Before = State.Clone(),
-                Added = clipText,
-                AddedStart = Cursor.GetPosition(),
-            };
+                if (Selection.HasSelection)
+                {
+                    editor.DeleteSelection();
+                }
 
-            if (Selection.HasSelection)
-            {
-                u.Removed = Selection.Text;
-                u.RemovedStart = State.SelectionStart;
-                u.RemovedEnd = State.SelectionEnd;
-                editor.DeleteSelection();
-            }
-
-            editor.InsertText(clipText);
-            u.AddedEnd = Cursor.GetPosition();
-            u.After = State.Clone();
-            UndoManager.AddUndo(u);
+                Buffer.InsertText(clipText);
+            });
         }
     }
 }

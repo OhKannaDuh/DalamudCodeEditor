@@ -10,7 +10,7 @@ public class Selection(Editor editor) : EditorComponent(editor)
 
     public bool HasSelection
     {
-        get => End > Start;
+        get => Start.Line != End.Line || Start.Column != End.Column;
     }
 
     public string Text
@@ -37,5 +37,19 @@ public class Selection(Editor editor) : EditorComponent(editor)
     public void SetMode(SelectionMode mode)
     {
         Mode = mode;
+    }
+
+    public (Coordinate, Coordinate) GetOrderedPositions()
+    {
+        var a = State.SelectionStart;
+        var b = State.SelectionEnd;
+        return a > b ? (b, a) : (a, b);
+    }
+
+    public void SelectAll()
+    {
+        SetStart(new Coordinate(0, 0));
+        SetEnd(new Coordinate(Buffer.GetLines().Count, 0));
+        State.SetSelection(Start, End);
     }
 }

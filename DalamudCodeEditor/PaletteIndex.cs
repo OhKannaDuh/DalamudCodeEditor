@@ -6,32 +6,8 @@ namespace DalamudCodeEditor;
 /// </summary>
 public enum PaletteIndex
 {
-    // === Syntax Elements ===
     Default = 0,
 
-    Keyword,
-
-    Identifier,
-
-    KnownIdentifier,
-
-    Function,
-
-    Number,
-
-    String,
-
-    Comment,
-
-    MultiLineComment,
-
-    Preprocessor,
-
-    PreprocessorIdentifier,
-
-    Punctuation,
-
-    // === Editor UI Elements ===
     Background,
 
     Cursor,
@@ -46,6 +22,23 @@ public enum PaletteIndex
 
     CurrentLineEdge,
 
-    // === Reserved / Internal Use ===
+    Keyword,
+
+    Variable,
+
+    Function,
+
+    Number,
+
+    String,
+
+    OtherLiteral,
+
+    Operator,
+
+    Punctuation,
+
+    Comment,
+
     Max,
 }

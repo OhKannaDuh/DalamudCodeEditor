@@ -7,9 +7,6 @@ public class LuaLanguageDefinition : LanguageDefinition
         CommentStart = "--[[";
         CommentEnd = "]]";
         SingleLineComment = "--";
-        PreprocChar = '#';
-        CaseSensitive = true;
-        AutoIndentation = false;
 
         Keywords.AddRange([
             "and", "break", "do", "else", "elseif", "end", "false", "for",
@@ -37,8 +34,10 @@ public class LuaLanguageDefinition : LanguageDefinition
 
     private IEnumerable<Token> TokenizeLuaLine(string line)
     {
+        var length = line.Length;
         var i = 0;
-        while (i < line.Length)
+
+        while (i < length)
         {
             var c = line[i];
 
@@ -49,57 +48,80 @@ public class LuaLanguageDefinition : LanguageDefinition
                 continue;
             }
 
-            var start = i;
-
-            // Long string / multiline comment
-            if (c == '[' && i + 1 < line.Length && line[i + 1] == '[')
+            // Single-line comment: --
+            if (c == '-' && i + 1 < length && line[i + 1] == '-')
             {
-                var end = line.IndexOf("]]", i + 2);
-                end = end == -1 ? line.Length : end + 2;
-                yield return new Token(i, end, PaletteIndex.String);
-                i = end;
+                // Check if it's a multiline comment start: --[[
+                if (i + 3 < length && line[i + 2] == '[' && line[i + 3] == '[')
+                {
+                    // Multiline comment start
+                    var start = i;
+                    i += 4;
+                    // find end of multiline comment ']]'
+                    var endComment = line.IndexOf("]]", i);
+                    if (endComment == -1)
+                    {
+                        endComment = length;
+                    }
+                    else
+                    {
+                        endComment += 2;
+                    }
+
+                    yield return new Token(start, endComment, PaletteIndex.Comment);
+                    i = endComment;
+                }
+                else
+                {
+                    // Single line comment to end of line
+                    yield return new Token(i, length, PaletteIndex.Comment);
+                    yield break; // rest is comment
+                }
+
                 continue;
             }
 
-            // Line comment --
-            if (c == '-' && i + 1 < line.Length && line[i + 1] == '-')
-            {
-                yield return new Token(i, line.Length, PaletteIndex.Comment);
-                break;
-            }
-
-            // Strings
+            // Strings: "..." or '...'
             if (c == '"' || c == '\'')
             {
+                var start = i;
                 var quote = c;
                 i++;
-                while (i < line.Length)
+                while (i < length)
                 {
-                    if (line[i] == '\\')
+                    if (line[i] == '\\' && i + 1 < length)
                     {
+                        // Skip escaped char
                         i += 2;
+                        continue;
                     }
-                    else if (line[i] == quote)
+
+                    if (line[i] == quote)
                     {
                         i++;
                         break;
                     }
-                    else
-                    {
-                        i++;
-                    }
+
+                    i++;
                 }
 
                 yield return new Token(start, i, PaletteIndex.String);
                 continue;
             }
 
-            // Numbers
-            if (char.IsDigit(c) || c == '.' && i + 1 < line.Length && char.IsDigit(line[i + 1]))
+            // Numbers (simple): digit or digit with decimals
+            if (char.IsDigit(c))
             {
+                var start = i;
                 i++;
-                while (i < line.Length && (char.IsLetterOrDigit(line[i]) || line[i] == '.'))
+                var dotFound = false;
+                while (i < length && (char.IsDigit(line[i]) || !dotFound && line[i] == '.'))
                 {
+                    if (line[i] == '.')
+                    {
+                        dotFound = true;
+                    }
+
                     i++;
                 }
 
@@ -107,67 +129,62 @@ public class LuaLanguageDefinition : LanguageDefinition
                 continue;
             }
 
-            // Identifiers (and dotted chains + method calls)
+            // Identifiers / Keywords / Built-ins: letter or '_'
             if (char.IsLetter(c) || c == '_')
             {
-                while (i < line.Length)
+                var start = i;
+                i++;
+                while (i < length && (char.IsLetterOrDigit(line[i]) || line[i] == '_'))
                 {
-                    var partStart = i;
-
-                    // Identifier
-                    while (i < line.Length && (char.IsLetterOrDigit(line[i]) || line[i] == '_'))
-                    {
-                        i++;
-                    }
-
-                    var partEnd = i;
-                    var ident = line.Substring(partStart, partEnd - partStart);
-                    var lookup = CaseSensitive ? ident : ident.ToLower();
-
-                    PaletteIndex kind;
-
-                    if (Keywords.Contains(lookup))
-                    {
-                        kind = PaletteIndex.Keyword;
-                    }
-                    else if (Identifiers.ContainsKey(lookup))
-                    {
-                        kind = PaletteIndex.KnownIdentifier;
-                    }
-                    else
-                    {
-                        // Look ahead to see if it's a function call (skip whitespace)
-                        var lookahead = i;
-                        while (lookahead < line.Length && char.IsWhiteSpace(line[lookahead]))
-                        {
-                            lookahead++;
-                        }
-
-                        kind = lookahead < line.Length && line[lookahead] == '('
-                            ? PaletteIndex.Function
-                            : PaletteIndex.Identifier;
-                    }
-
-                    yield return new Token(partStart, partEnd, kind);
-
-                    // Dot or colon separator
-                    if (i < line.Length && (line[i] == '.' || line[i] == ':'))
-                    {
-                        yield return new Token(i, i + 1, PaletteIndex.Punctuation);
-                        i++;
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    i++;
                 }
 
+                var word = line.Substring(start, i - start);
+                var color = PaletteIndex.Default;
+
+                if (Keywords.Contains(word))
+                {
+                    color = PaletteIndex.Keyword;
+                }
+                else if (Identifiers.ContainsKey(word))
+                {
+                    color = PaletteIndex.Function; // or Variable?
+                }
+
+                yield return new Token(start, i, color);
                 continue;
             }
 
-            // Punctuation
-            yield return new Token(i, i + 1, PaletteIndex.Punctuation);
-            i++;
+            // Operators and punctuation (basic)
+            // For simplicity, treat any non-alphanumeric/non-whitespace char as operator/punctuation
+            {
+                var start = i;
+                i++;
+
+                // You can extend this to multi-char operators, e.g. '==', '~=', '>=', etc.
+                // Check multi-char operators:
+                if (start + 1 < length)
+                {
+                    var twoChars = line.Substring(start, 2);
+                    if (twoChars == "==" || twoChars == "~=" || twoChars == ">=" || twoChars == "<=")
+                    {
+                        i = start + 2;
+                        yield return new Token(start, i, PaletteIndex.Operator);
+                        continue;
+                    }
+                }
+
+                // Single-char operator or punctuation
+                var ch = line[start];
+                if ("+-*/%^#=<>;:,(){}[]".Contains(ch))
+                {
+                    yield return new Token(start, i, PaletteIndex.Operator);
+                }
+                else
+                {
+                    yield return new Token(start, i, PaletteIndex.OtherLiteral);
+                }
+            }
         }
     }
 }

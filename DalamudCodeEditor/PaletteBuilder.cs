@@ -16,12 +16,7 @@ public static class PaletteBuilder
             Entry(PaletteIndex.String, 0.65f, 0.85f, 0.60f), // Light green
             Entry(PaletteIndex.Function, 0.53f, 0.78f, 0.98f), // Light blue
             Entry(PaletteIndex.Punctuation, 0.75f, 0.75f, 0.75f), // Light gray
-            Entry(PaletteIndex.Preprocessor, 0.77f, 0.55f, 0.93f), // Lavender
-            Entry(PaletteIndex.Identifier, 0.85f, 0.77f, 0.57f), // Soft yellow
-            Entry(PaletteIndex.KnownIdentifier, 0.98f, 0.63f, 0.47f), // Coral
-            Entry(PaletteIndex.PreprocessorIdentifier, 0.86f, 0.58f, 0.98f), // Purple
             Entry(PaletteIndex.Comment, 0.50f, 0.56f, 0.60f), // Gray-blue
-            Entry(PaletteIndex.MultiLineComment, 0.50f, 0.56f, 0.60f), // Gray-blue
 
             // === Editor UI ===
             Entry(PaletteIndex.Background, 0.122f, 0.122f, 0.122f), // You liked this
@@ -56,12 +51,7 @@ public static class PaletteBuilder
             Entry(PaletteIndex.String, 0xffb0b3b8),
             Entry(PaletteIndex.Function, 0xffb0b3b8),
             Entry(PaletteIndex.Punctuation, 0xffb0b3b8),
-            Entry(PaletteIndex.Preprocessor, 0xffb0b3b8),
-            Entry(PaletteIndex.Identifier, 0xffb0b3b8),
-            Entry(PaletteIndex.KnownIdentifier, 0xffb0b3b8),
-            Entry(PaletteIndex.PreprocessorIdentifier, 0xffb0b3b8),
             Entry(PaletteIndex.Comment, 0xff5c6370),
-            Entry(PaletteIndex.MultiLineComment, 0xff5c6370),
 
             // === Editor UI (matched to GetDarkPalette) ===
             Entry(PaletteIndex.Background, 0xff1f1f1f), // #1F1F1F

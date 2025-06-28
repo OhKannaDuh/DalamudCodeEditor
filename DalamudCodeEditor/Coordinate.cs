@@ -65,19 +65,12 @@ public class Coordinate(int line = 0, int column = 0)
 
     public override bool Equals(object? obj)
     {
-        if (obj == null)
-        {
-            return false;
-        }
-
-        var a = (Coordinate?)obj!;
-        return a == this;
+        return obj is Coordinate o && Line == o.Line && Column == o.Column;
     }
 
     public override int GetHashCode()
     {
-        // ReSharper disable once BaseObjectGetHashCodeCallInGetHashCode
-        return base.GetHashCode();
+        return HashCode.Combine(Line, Column);
     }
 
     public Coordinate Sanitized(Editor editor)

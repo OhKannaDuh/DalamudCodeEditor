@@ -3,40 +3,13 @@ using ImGuiNET;
 
 namespace DalamudCodeEditor.TextEditor;
 
-public class TextBuffer(Editor editor) : DirtyTrackable(editor)
+public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
 {
     private readonly List<List<Glyph>> lines = [[]];
 
     public int LineCount
     {
         get => lines.Count;
-    }
-
-    public int LongestLine
-    {
-        get => GetLongestLine();
-    }
-
-    private int GetLongestLine()
-    {
-        var longest = 0;
-
-        foreach (var line in lines)
-        {
-            var length = 0;
-
-            foreach (var glyph in line)
-            {
-                length += glyph.Character == '\t' ? Style.TabSize : 1; // Tab counts as 4 visual spaces
-            }
-
-            if (length > longest)
-            {
-                longest = length;
-            }
-        }
-
-        return longest;
     }
 
     public void SetText(string text)
@@ -62,8 +35,8 @@ public class TextBuffer(Editor editor) : DirtyTrackable(editor)
             }
         }
 
+        Colorizer.Colorize(0, LineCount);
         Scroll.RequestScrollToTop();
-        UndoManager.Clear();
     }
 
     public string GetText()
@@ -85,117 +58,11 @@ public class TextBuffer(Editor editor) : DirtyTrackable(editor)
         return sb.ToString();
     }
 
-    public List<Glyph> GetLine(int index)
-    {
-        return lines[index];
-    }
-
     public void Clear()
     {
         MarkDirty();
         lines.Clear();
         lines.Add(new List<Glyph>());
-    }
-
-    public void AddLine()
-    {
-        AddLine([]);
-    }
-
-    public void AddLine(List<Glyph> line)
-    {
-        MarkDirty();
-        lines.Add(line);
-    }
-
-    public void InsertLine(int index, List<Glyph> line)
-    {
-        MarkDirty();
-        lines.Insert(index, line);
-    }
-
-    public void RemoveLine(int index)
-    {
-        MarkDirty();
-        lines.RemoveAt(index);
-    }
-
-    public void ReplaceLine(int index, List<Glyph> line)
-    {
-        MarkDirty();
-        lines[index] = line;
-    }
-
-    public int InsertTextAt(Coordinate where, string value)
-    {
-        MarkDirty();
-        return TextInsertionHelper.InsertTextAt(lines, where, value, Style.TabSize);
-    }
-
-    public int GetLineMaxColumn(int line)
-    {
-        if (line < 0 || line >= LineCount)
-        {
-            return 0;
-        }
-
-        var glyphs = lines[line];
-        var column = 0;
-
-        for (var i = 0; i < glyphs.Count;)
-        {
-            var c = glyphs[i].Character;
-
-            if (c == '\t')
-            {
-                column = column / Style.TabSize * Style.TabSize + Style.TabSize;
-            }
-            else
-            {
-                column++;
-            }
-
-            i += Utf8Helper.UTF8CharLength(c);
-        }
-
-        return column;
-    }
-
-    public float GetDistanceToLineStart(Coordinate from)
-    {
-        if (from.Line < 0 || from.Line >= LineCount)
-        {
-            return 0.0f;
-        }
-
-        var line = lines[from.Line];
-        var distance = 0.0f;
-        var spaceWidth = ImGui.CalcTextSize(" ").X;
-        var charIndex = TextInsertionHelper.GetCharacterIndex(lines, from, Style.TabSize);
-
-        for (var i = 0; i < line.Count && i < charIndex;)
-        {
-            var c = line[i].Character;
-
-            if (c == '\t')
-            {
-                var tabSizePixels = Style.TabSize * spaceWidth;
-                distance = ((float)Math.Floor((distance + 0.5f) / tabSizePixels) + 1) * tabSizePixels;
-                i++;
-            }
-            else
-            {
-                var charLen = Utf8Helper.UTF8CharLength(c);
-                var available = Math.Min(charLen, line.Count - i);
-
-                var text = new string(line.Skip(i).Take(available).Select(g => g.Character).ToArray());
-                distance += ImGui.CalcTextSize(text).X;
-
-                i += available;
-            }
-        }
-
-        return distance;
     }
 
     public string GetText(Coordinate start, Coordinate end)
@@ -232,245 +99,135 @@ public class TextBuffer(Editor editor) : DirtyTrackable(editor)
         return result.ToString();
     }
 
-    public Coordinate FindWordStart(Coordinate aFrom)
+    public void EnterCharacter(char c)
     {
-        var at = aFrom;
-        if (at.Line >= Buffer.GetLines().Count)
+        var shift = InputManager.Keyboard.Shift;
+        UndoManager.Create(() =>
         {
-            return at;
-        }
-
-        var line = Buffer.GetLines()[at.Line];
-        var cindex = GetCharacterIndex(at);
-
-        if (cindex >= line.Count)
-        {
-            return at;
-        }
-
-        while (cindex > 0 && char.IsWhiteSpace(line[cindex].Character))
-        {
-            --cindex;
-        }
-
-        var cstart = line[cindex].ColorIndex;
-        while (cindex > 0)
-        {
-            var c = line[cindex].Character;
-            if ((c & 0xC0) != 0x80) // not UTF code sequence 10xxxxxx
+            if (c == '\t' && Selection.HasSelection && SelectionSpansMultipleLines())
             {
-                if (c <= 32 && char.IsWhiteSpace(c))
-                {
-                    cindex++;
-                    break;
-                }
-
-                if (cstart != line[cindex - 1].ColorIndex)
-                {
-                    break;
-                }
+                HandleTabIndentation(shift);
             }
+            else
+            {
+                if (Selection.HasSelection)
+                {
+                    editor.DeleteSelection();
+                }
 
-            --cindex;
-        }
+                InsertCharacterAtCursor(c);
+            }
+        });
 
-        return new Coordinate(at.Line, GetCharacterColumn(at.Line, cindex));
+        Buffer.MarkDirty();
+        Colorizer.Colorize(Cursor.GetPosition().Line - 1, 3);
+        Cursor.EnsureVisible();
     }
 
-    public Coordinate FindWordEnd(Coordinate aFrom)
+    private void HandleTabIndentation(bool shift)
     {
-        var at = aFrom;
-        if (at.Line >= Buffer.GetLines().Count)
+        var (start, end) = Selection.GetOrderedPositions();
+        var originalEnd = end;
+
+        start = new Coordinate(start.Line, 0);
+        if (end.Column == 0 && end.Line > 0)
         {
-            return at;
+            end = new Coordinate(end.Line - 1, Buffer.GetLineMaxColumn(end.Line - 1));
+        }
+        else
+        {
+            end = new Coordinate(end.Line, Buffer.GetLineMaxColumn(end.Line));
         }
 
-        var line = Buffer.GetLines()[at.Line];
-        var cindex = GetCharacterIndex(at);
+        var modified = false;
 
-        if (cindex >= line.Count)
+        for (var i = start.Line; i <= end.Line; i++)
         {
-            return at;
-        }
-
-        var prevspace = char.IsWhiteSpace(line[cindex].Character);
-        var cstart = line[cindex].ColorIndex;
-        while (cindex < line.Count)
-        {
-            var c = line[cindex].Character;
-            var d = Utf8Helper.UTF8CharLength(c);
-            if (cstart != line[cindex].ColorIndex)
+            var line = lines[i];
+            if (shift)
             {
-                break;
-            }
-
-            if (prevspace != char.IsWhiteSpace(c))
-            {
-                if (char.IsWhiteSpace(c))
+                if (line.Count > 0)
                 {
-                    while (cindex < line.Count && char.IsWhiteSpace(line[cindex].Character))
+                    if (line[0].Character == '\t')
                     {
-                        ++cindex;
+                        line.RemoveAt(0);
+                        modified = true;
+                    }
+                    else
+                    {
+                        for (var j = 0; j < Style.TabSize && line.Count > 0 && line[0].Character == ' '; j++)
+                        {
+                            line.RemoveAt(0);
+                            modified = true;
+                        }
                     }
                 }
-
-                break;
-            }
-
-            cindex += d;
-        }
-
-        return new Coordinate(aFrom.Line, GetCharacterColumn(aFrom.Line, cindex));
-    }
-
-    public int GetCharacterIndex(Coordinate aCoordinates)
-    {
-        if (aCoordinates.Line >= Buffer.GetLines().Count)
-        {
-            return -1;
-        }
-
-        var line = Buffer.GetLines()[aCoordinates.Line];
-        var c = 0;
-        var i = 0;
-        for (; i < line.Count && c < aCoordinates.Column;)
-        {
-            if (line[i].Character == '\t')
-            {
-                c = c / Style.TabSize * Style.TabSize + Style.TabSize;
             }
             else
             {
-                ++c;
+                line.Insert(0, new Glyph('\t', PaletteIndex.Background));
+                modified = true;
             }
-
-            i += Utf8Helper.UTF8CharLength(line[i].Character);
         }
 
-        return i;
+        if (!modified)
+        {
+            return;
+        }
+
+        State.SelectionStart = new Coordinate(start.Line, Buffer.GetCharacterColumn(start.Line, 0));
+        State.SelectionEnd = originalEnd.Column != 0
+            ? new Coordinate(end.Line, Buffer.GetLineMaxColumn(end.Line))
+            : new Coordinate(end.Line - 1, Buffer.GetLineMaxColumn(end.Line - 1));
     }
 
-    public int GetCharacterColumn(int aLine, int aIndex)
+    private bool SelectionSpansMultipleLines()
     {
-        if (aLine >= Buffer.GetLines().Count)
-        {
-            return 0;
-        }
-
-        var line = Buffer.GetLines()[aLine];
-        var col = 0;
-        var i = 0;
-        while (i < aIndex && i < line.Count)
-        {
-            var c = line[i].Character;
-            i += Utf8Helper.UTF8CharLength(c);
-            if (c == '\t')
-            {
-                col = col / Style.TabSize * Style.TabSize + Style.TabSize;
-            }
-            else
-            {
-                col++;
-            }
-        }
-
-        return col;
+        return State.SelectionStart.Line != State.SelectionEnd.Line;
     }
 
-    public Coordinate FindNextWord(Coordinate aFrom)
+    private void InsertCharacterAtCursor(char c)
     {
-        var at = aFrom;
-        if (at.Line >= Buffer.GetLines().Count)
-        {
-            return at;
-        }
+        var coord = Cursor.GetPosition();
+        var line = lines[coord.Line];
 
-        // skip to the next non-word character
-        var cindex = GetCharacterIndex(aFrom);
-        var isword = false;
-        var skip = false;
-        if (cindex < Buffer.GetLines()[at.Line].Count)
+        if (c == '\n')
         {
-            var line = Buffer.GetLines()[at.Line];
-            isword = char.IsLetterOrDigit(line[cindex].Character);
-            skip = isword;
-        }
+            InsertLine(coord.Line + 1, []);
+            var newLine = lines[coord.Line + 1];
 
-        while (!isword || skip)
+            var splitIndex = Buffer.GetCharacterIndex(coord);
+            newLine.AddRange(line.Skip(splitIndex));
+            line.RemoveRange(splitIndex, line.Count - splitIndex);
+
+            Cursor.SetPosition(new Coordinate(coord.Line + 1, Buffer.GetCharacterColumn(coord.Line + 1, newLine.Count)));
+        }
+        else
         {
-            if (at.Line >= Buffer.GetLines().Count)
+            var buf = new char[7];
+            var len = Utf8Helper.ImTextCharToUtf8(ref buf, buf.Length, c);
+            if (len <= 0)
             {
-                var l = Math.Max(0, Buffer.GetLines().Count - 1);
-                return new Coordinate(l, Buffer.GetLineMaxColumn(l));
+                return;
             }
 
-            var line = Buffer.GetLines()[at.Line];
-            if (cindex < line.Count)
+            var insertIndex = Buffer.GetCharacterIndex(coord);
+
+            if (editor.IsOverwrite && insertIndex < line.Count)
             {
-                isword = char.IsLetterOrDigit(line[cindex].Character);
-
-                if (isword && !skip)
-                {
-                    return new Coordinate(at.Line, GetCharacterColumn(at.Line, cindex));
-                }
-
-                if (!isword)
-                {
-                    skip = false;
-                }
-
-                cindex++;
+                var removeCount = Utf8Helper.UTF8CharLength(line[insertIndex].Character);
+                line.RemoveRange(insertIndex, Math.Min(removeCount, line.Count - insertIndex));
             }
-            else
+
+            for (var i = 0; i < len && buf[i] != '\0'; i++)
             {
-                cindex = 0;
-                ++at.Line;
-                skip = false;
-                isword = false;
+                line.Insert(insertIndex++, new Glyph(buf[i], PaletteIndex.Default));
             }
-        }
 
-        return at;
+            Cursor.SetPosition(new Coordinate(coord.Line, Buffer.GetCharacterColumn(coord.Line, insertIndex)));
+        }
     }
 
-    public int GetLineCharacterCount(int aLine)
-    {
-        if (aLine >= Buffer.GetLines().Count)
-        {
-            return 0;
-        }
-
-        var line = Buffer.GetLines()[aLine];
-        var c = 0;
-        for (var i = 0; i < line.Count; c++)
-        {
-            i += Utf8Helper.UTF8CharLength(line[i].Character);
-        }
-
-        return c;
-    }
-
-    public bool IsOnWordBoundary(Coordinate aAt)
-    {
-        if (aAt.Line >= Buffer.GetLines().Count || aAt.Column == 0)
-        {
-            return true;
-        }
-
-        var line = Buffer.GetLines()[aAt.Line];
-        var cindex = GetCharacterIndex(aAt);
-        if (cindex >= line.Count)
-        {
-            return true;
-        }
-
-        if (Colorizer.Enabled)
-        {
-            return line[cindex].ColorIndex != line[cindex - 1].ColorIndex;
-        }
-
-        return char.IsWhiteSpace(line[cindex].Character) != char.IsWhiteSpace(line[cindex - 1].Character);
-    }
 
     public List<List<Glyph>> GetLines()
     {

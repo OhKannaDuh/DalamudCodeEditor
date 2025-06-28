@@ -27,7 +27,7 @@ public class UndoManager(Editor editor) : EditorComponent(editor)
 
     public void Redo()
     {
-        while (CanRedo())
+        if (CanRedo())
         {
             buffer[bufferIndex].Redo(editor);
             ++bufferIndex;
@@ -49,5 +49,16 @@ public class UndoManager(Editor editor) : EditorComponent(editor)
     {
         buffer.Clear();
         bufferIndex = 0;
+    }
+
+    public void Create(Action change)
+    {
+        var record = UndoRecord.Create(editor, change);
+        if (record.BeforeText == record.AfterText)
+        {
+            return;
+        }
+
+        AddUndo(record);
     }
 }

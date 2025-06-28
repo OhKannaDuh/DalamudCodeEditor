@@ -1,6 +1,6 @@
 using DalamudCodeEditor.TextEditor;
 
-namespace DalamudCodeEditor;
+namespace DalamudCodeEditor.TextEditor;
 
 public class State(Editor editor) : EditorComponent(editor)
 {

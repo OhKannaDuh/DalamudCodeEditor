@@ -2,59 +2,44 @@ using DalamudCodeEditor.TextEditor;
 
 namespace DalamudCodeEditor;
 
-public class UndoRecord()
+public class UndoRecord
 {
-    public string Added = "";
+    internal State Before;
 
-    public Coordinate AddedEnd = new();
+    internal State After;
 
-    public Coordinate AddedStart = new();
+    internal string BeforeText;
 
-    public State After;
+    internal string AfterText;
 
-    public State Before;
-
-    public string Removed = "";
-
-    public Coordinate RemovedEnd = new();
-
-    public Coordinate RemovedStart = new();
+    private UndoRecord()
+    {
+    }
 
     public void Undo(Editor editor)
     {
+        editor.Buffer.SetText(BeforeText);
         editor.State = Before;
-
-        if (!string.IsNullOrEmpty(Added))
-        {
-            editor.DeleteRange(AddedStart, AddedEnd);
-        }
-
-        if (!string.IsNullOrEmpty(Removed))
-        {
-            editor.InsertTextAt(RemovedStart, Removed);
-        }
-
-        editor.Colorizer.Colorize(Math.Max(0, RemovedStart.Line - 1),
-            Math.Max(1, RemovedEnd.Line - RemovedStart.Line + 2));
-        editor.Cursor.EnsureVisible();
     }
 
     public void Redo(Editor editor)
     {
+        editor.Buffer.SetText(AfterText);
         editor.State = After;
+    }
 
-        if (!string.IsNullOrEmpty(Removed))
-        {
-            editor.DeleteRange(RemovedStart, RemovedEnd);
-        }
+    public static UndoRecord Create(Editor editor, Action change)
+    {
+        var record = new UndoRecord();
 
-        if (!string.IsNullOrEmpty(Added))
-        {
-            editor.InsertTextAt(AddedStart, Added);
-        }
+        record.Before = editor.State.Clone();
+        record.BeforeText = editor.Buffer.GetText();
 
-        editor.Colorizer.Colorize(Math.Max(0, AddedStart.Line - 1),
-            Math.Max(1, AddedEnd.Line - AddedStart.Line + 2));
-        editor.Cursor.EnsureVisible();
+        change();
+
+        record.After = editor.State.Clone();
+        record.AfterText = editor.Buffer.GetText();
+
+        return record;
     }
 }

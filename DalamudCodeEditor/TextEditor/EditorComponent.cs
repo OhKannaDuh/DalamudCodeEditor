@@ -56,4 +56,9 @@ public abstract class EditorComponent(Editor editor)
     {
         get => editor.State;
     }
+
+    public Palette Palette
+    {
+        get => editor.Palette;
+    }
 }

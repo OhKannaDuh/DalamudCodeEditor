@@ -4,8 +4,6 @@ namespace DalamudCodeEditor.TextEditor;
 
 public class Keyboard(Editor editor) : EditorComponent(editor)
 {
-    public readonly record struct KeyBinding(ImGuiKey Key, bool Ctrl = false, bool Shift = false, bool Alt = false);
-
     public delegate void InputAction();
 
     private InputAction RequireWritable(InputAction action)
@@ -19,7 +17,7 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
         };
     }
 
-    private readonly Dictionary<KeyBinding, InputAction> keyBindings = new();
+    private readonly List<(KeyBinding binding, InputAction action)> KeyBindings = new();
 
     public ImGuiIOPtr IO
     {
@@ -43,34 +41,44 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
 
     public void InitializeKeyboardBindings()
     {
-        // Helper for createing quick keybinds
-        void bind(ImGuiKey key, InputAction action, bool ctrl = false, bool shift = false, bool alt = false)
-        {
-            keyBindings[new KeyBinding(key, ctrl, shift, alt)] = action;
-        }
+        // Undo/Redo
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Z).CtrlDown(), RequireWritable(UndoManager.Undo)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Backspace).AltDown(), RequireWritable(UndoManager.Undo)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Y).CtrlDown(), RequireWritable(UndoManager.Redo)));
 
-        bind(ImGuiKey.Z, UndoManager.Undo, true);
-        bind(ImGuiKey.Y, UndoManager.Redo, true);
-        bind(ImGuiKey.C, Clipboard.Copy, true);
-        bind(ImGuiKey.V, Clipboard.Paste, true);
-        bind(ImGuiKey.X, Clipboard.Cut, true);
-        bind(ImGuiKey.A, editor.SelectAll, true);
-        bind(ImGuiKey.Delete, editor.Delete);
-        // bind(ImGuiKey.Backspace, editor.Backspace);
-        // bind(ImGuiKey.Insert, () => editor.ToggleOverwrite(), ctrl: false, shift: false, alt: false);
-        // bind(ImGuiKey.Enter, () => editor.EnterCharacter('\n', false));
-        // bind(ImGuiKey.Tab, () => editor.EnterCharacter('\t', Shift), shift: Shift);
-        // Navigation
-        // bind(ImGuiKey.UpArrow, () => editor.MoveUp(1, Shift));
-        // bind(ImGuiKey.DownArrow, () => editor.MoveDown(1, Shift));
-        // bind(ImGuiKey.LeftArrow, () => editor.MoveLeft(1, Shift, Ctrl));
-        // bind(ImGuiKey.RightArrow, () => editor.MoveRight(1, Shift, Ctrl));
-        // bind(ImGuiKey.Home, () => editor.MoveHome(Shift), ctrl: false);
-        // bind(ImGuiKey.End, () => editor.MoveEnd(Shift), ctrl: false);
-        // bind(ImGuiKey.Home, () => editor.MoveTop(Shift), ctrl: true);
-        // bind(ImGuiKey.End, () => editor.MoveBottom(Shift), ctrl: true);
-        // bind(ImGuiKey.PageUp, () => editor.MoveUp(editor.GetPageSize() - 4, Shift));
-        // bind(ImGuiKey.PageDown, () => editor.MoveDown(editor.GetPageSize() - 4, Shift));
+        // Cursor Movement
+        KeyBindings.Add((new KeyBinding(ImGuiKey.UpArrow).ShiftIgnored(), () => Cursor.MoveUp()));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.DownArrow).ShiftIgnored(), () => Cursor.MoveDown()));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.LeftArrow).ShiftIgnored().CtrlIgnored(), () => Cursor.MoveLeft()));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.RightArrow).ShiftIgnored().CtrlIgnored(), () => Cursor.MoveRight()));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.PageUp).ShiftIgnored().CtrlIgnored(), Cursor.PageUp));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.PageDown).ShiftIgnored().CtrlIgnored(), Cursor.PageDown));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Home).CtrlDown().ShiftIgnored(), Cursor.MoveTop));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.End).CtrlDown().ShiftIgnored(), Cursor.MoveBottom));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Home).ShiftIgnored(), Cursor.MoveHome));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.End).ShiftIgnored(), Cursor.MoveEnd));
+
+        // Other
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Delete), RequireWritable(editor.Delete)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Backspace), RequireWritable(editor.Backspace)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Insert), editor.ToggleOverwrite));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.A).CtrlDown(), Selection.SelectAll));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Enter), RequireWritable(() =>
+        {
+            Buffer.EnterCharacter('\n');
+            var pos = Cursor.GetPosition();
+            pos.Column = 0;
+            Cursor.SetPosition(pos);
+        })));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Tab).ShiftIgnored(), RequireWritable(() => Buffer.EnterCharacter('\t'))));
+
+        // Clipboard
+        KeyBindings.Add((new KeyBinding(ImGuiKey.C).CtrlDown(), Clipboard.Copy));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Insert).CtrlDown(), Clipboard.Copy));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.V).CtrlDown(), Clipboard.Paste));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Insert).ShiftDown(), Clipboard.Paste));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.X).CtrlDown(), Clipboard.Cut));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Delete).ShiftDown(), Clipboard.Cut));
     }
 
     public void HandleInput()
@@ -87,5 +95,28 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
 
         IO.WantCaptureKeyboard = true;
         IO.WantTextInput = true;
+
+        foreach (var (binding, action) in KeyBindings)
+        {
+            if (ImGui.IsKeyPressed(binding.Key) && binding.Matches(Ctrl, Shift, Alt))
+            {
+                action();
+                break;
+            }
+        }
+
+        if (editor.IsReadOnly)
+        {
+            return;
+        }
+
+        for (var i = 0; i < ImGui.GetIO().InputQueueCharacters.Size; i++)
+        {
+            var c = ImGui.GetIO().InputQueueCharacters[i];
+            if (c != 0 && (c == '\n' || c >= 32))
+            {
+                Buffer.EnterCharacter((char)c);
+            }
+        }
     }
 }

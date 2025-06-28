@@ -1,8 +1,17 @@
-﻿namespace DalamudCodeEditor.TextEditor;
+﻿using ImGuiNET;
+
+namespace DalamudCodeEditor.TextEditor;
 
 public abstract class DirtyTrackable(Editor editor) : EditorComponent(editor)
 {
     private bool isDirty = false;
+
+    private double lastDirtyTime = 0;
+
+    public double TimeSinceDirty
+    {
+        get => isDirty ? ImGui.GetTime() - lastDirtyTime : 0;
+    }
 
     public bool IsDirty
     {
@@ -17,5 +26,6 @@ public abstract class DirtyTrackable(Editor editor) : EditorComponent(editor)
     public void MarkDirty()
     {
         isDirty = true;
+        lastDirtyTime = ImGui.GetTime();
     }
 }
