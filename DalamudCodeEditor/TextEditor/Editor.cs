@@ -68,13 +68,16 @@ public partial class Editor
         InputManager.Keyboard.HandleInput();
         InputManager.Mouse.HandleInput();
 
-        // Colorizer.Colorize();
-        // Colorizer.ProcessColorizationQueue();
         Colorizer.ProcessColorizationQueue();
 
         Renderer.Render();
 
         Renderer.End();
         Scroll.ScrollToCursor();
+    }
+
+    public void ToggleReadOnly()
+    {
+        IsReadOnly ^= true;
     }
 }
