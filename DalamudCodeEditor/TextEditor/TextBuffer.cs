@@ -213,15 +213,9 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
 
             var insertIndex = Buffer.GetCharacterIndex(coord);
 
-            if (editor.IsOverwrite && insertIndex < line.Count)
-            {
-                var removeCount = Utf8Helper.UTF8CharLength(line[insertIndex].Character);
-                line.RemoveRange(insertIndex, Math.Min(removeCount, line.Count - insertIndex));
-            }
-
             for (var i = 0; i < len && buf[i] != '\0'; i++)
             {
-                line.Insert(insertIndex++, new Glyph(buf[i], PaletteIndex.Default));
+                line.Insert(insertIndex++, new Glyph(buf[i]));
             }
 
             Cursor.SetPosition(new Coordinate(coord.Line, Buffer.GetCharacterColumn(coord.Line, insertIndex)));

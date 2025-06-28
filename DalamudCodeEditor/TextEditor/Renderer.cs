@@ -131,35 +131,14 @@ public class Renderer(Editor editor) : EditorComponent(editor)
                         if (elapsed > 400)
                         {
                             var width = 1.0f;
-                            var cindex = Buffer.GetCharacterIndex(State.CursorPosition);
                             var cx = Buffer.TextDistanceToLineStart(State.CursorPosition);
-
-                            if (editor.IsOverwrite && cindex < line.Count)
-                            {
-                                var c = line[cindex].Character;
-                                if (c == '\t')
-                                {
-                                    var x = (1.0f + Math.Floor((1.0f + cx) / (Style.TabSize * spaceSize))) *
-                                            (Style.TabSize * spaceSize);
-                                    width = (float)(x - cx);
-                                }
-                                else
-                                {
-                                    var buf2 = new char[2];
-                                    buf2[0] = line[cindex].Character;
-                                    buf2[1] = '\0';
-                                    //width = ImGui.GetFont()->CalcTextSizeA(ImGui.GetFontSize(), FLT_MAX, -1.0f, buf2).x;
-                                    width = ImGui.CalcTextSize(new string(buf2)).X;
-                                }
-                            }
 
                             Vector2 cstart = new(textScreenPos.X + cx, lineStartScreenPos.Y);
                             Vector2 cend = new(textScreenPos.X + cx + width, lineStartScreenPos.Y + LineHeight);
                             drawList.AddRectFilled(cstart, cend, Palette[PaletteIndex.Cursor].GetU32());
                             if (elapsed > 800)
                             {
-                                //@todo
-                                // mStartTime = timeEnd;
+                                editor.StartTime = timeEnd;
                             }
                         }
                     }

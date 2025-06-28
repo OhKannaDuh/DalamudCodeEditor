@@ -61,7 +61,6 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
         // Other
         KeyBindings.Add((new KeyBinding(ImGuiKey.Delete), RequireWritable(editor.Delete)));
         KeyBindings.Add((new KeyBinding(ImGuiKey.Backspace), RequireWritable(editor.Backspace)));
-        KeyBindings.Add((new KeyBinding(ImGuiKey.Insert), editor.ToggleOverwrite));
         KeyBindings.Add((new KeyBinding(ImGuiKey.A).CtrlDown(), Selection.SelectAll));
         KeyBindings.Add((new KeyBinding(ImGuiKey.Enter), RequireWritable(() =>
         {

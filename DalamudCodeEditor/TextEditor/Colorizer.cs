@@ -7,7 +7,6 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
 {
     public bool Enabled { get; private set; } = true;
 
-
     private bool _checkComments = false;
 
     private int _minLineToColorize = int.MaxValue;

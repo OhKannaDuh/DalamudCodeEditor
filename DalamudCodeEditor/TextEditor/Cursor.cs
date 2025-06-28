@@ -64,7 +64,7 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
         }
     }
 
-    private void MoveCursor(Func<Coordinate, Coordinate> movementFunc, bool ensureVisible = true)
+    private void MoveCursor(Func<Coordinate, Coordinate> movementFunc)
     {
         var shift = InputManager.Keyboard.Shift;
         var previous = GetPosition();
@@ -100,10 +100,7 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
 
         State.SetSelection(Selection.Start, Selection.End);
 
-        if (ensureVisible)
-        {
-            EnsureVisible();
-        }
+        EnsureVisible();
     }
 
     public void MoveUp(int lines = 1)
@@ -192,7 +189,7 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
             }
 
             return newPos.Sanitized(editor);
-        }, shift);
+        });
     }
 
     public void MoveRight(int chars = 1)
@@ -236,7 +233,7 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
             }
 
             return newPos.Sanitized(editor);
-        }, shift);
+        });
     }
 
 

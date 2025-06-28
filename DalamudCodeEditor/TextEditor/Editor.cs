@@ -1,6 +1,4 @@
-using System.Drawing;
 using System.Numerics;
-using System.Text.RegularExpressions;
 using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 
@@ -36,8 +34,6 @@ public partial class Editor
     // Properties
     public bool IsReadOnly { get; private set; }
 
-    public bool IsOverwrite { get; private set; }
-
     public Editor()
     {
         Buffer = new TextBuffer(this);
@@ -72,18 +68,13 @@ public partial class Editor
         InputManager.Keyboard.HandleInput();
         InputManager.Mouse.HandleInput();
 
-        Colorizer.Colorize();
+        // Colorizer.Colorize();
+        // Colorizer.ProcessColorizationQueue();
         Colorizer.ProcessColorizationQueue();
 
         Renderer.Render();
 
-        Scroll.ScrollToCursor();
         Renderer.End();
-    }
-
-    // This is Insert mode
-    public void ToggleOverwrite()
-    {
-        IsOverwrite = !IsOverwrite;
+        Scroll.ScrollToCursor();
     }
 }

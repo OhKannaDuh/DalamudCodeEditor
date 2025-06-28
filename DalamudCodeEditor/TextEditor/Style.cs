@@ -14,9 +14,7 @@ public class Style(Editor editor) : EditorComponent(editor)
     public bool ShowLineNumbers { get; private set; } = true;
 
     public bool ShowWhitespace { get; private set; } = true;
-
-    public bool ApplySyntaxHighlighting { get; private set; } = true;
-
+    
     public float LineSpacing { get; private set; } = 1;
 
     public void ToggleLineNumbers()

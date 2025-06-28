@@ -5,7 +5,6 @@ using ImGuiNET;
 
 namespace DalamudCodeEditor.TextEditor;
 
-using Line = List<Glyph>;
 
 public partial class Editor
 {
@@ -58,28 +57,7 @@ public partial class Editor
             }
         });
     }
-
-    public void Advance(Coordinate aCoordinates)
-    {
-        if (aCoordinates.Line < Buffer.GetLines().Count)
-        {
-            var line = Buffer.GetLines()[aCoordinates.Line];
-            var cindex = Buffer.GetCharacterIndex(aCoordinates);
-
-            if (cindex + 1 < line.Count)
-            {
-                var delta = Utf8Helper.UTF8CharLength(line[cindex].Character);
-                cindex = Math.Min(cindex + delta, line.Count - 1);
-            }
-            else
-            {
-                ++aCoordinates.Line;
-                cindex = 0;
-            }
-
-            aCoordinates.Column = Buffer.GetCharacterColumn(aCoordinates.Line, cindex);
-        }
-    }
+    
 
     internal void DeleteRange(Coordinate aStart, Coordinate aEnd)
     {

@@ -86,24 +86,14 @@ public class Mouse(Editor editor) : EditorComponent(editor)
             if (state.TripleClick)
             {
                 Cursor.SetPosition(position);
-                Selection.SetToPoint(position);
-                Selection.SetMode(SelectionMode.Normal);
-
-                State.SetSelection(Selection.Start, Selection.End, Selection.Mode);
-
+                State.SetSelection(position, position, SelectionMode.Line); // Expands to full line
                 return;
             }
 
             if (state.DoubleClick)
             {
                 Cursor.SetPosition(position);
-                Selection.SetToPoint(position);
-
-                var isLine = Selection.Mode == SelectionMode.Line;
-                Selection.SetMode(isLine ? SelectionMode.Normal : SelectionMode.Word);
-
-                State.SetSelection(Selection.Start, Selection.End, Selection.Mode);
-
+                State.SetSelection(position, position, SelectionMode.Word); // Expands to full word
                 return;
             }
         }
@@ -111,11 +101,8 @@ public class Mouse(Editor editor) : EditorComponent(editor)
         if (state.Click)
         {
             Cursor.SetPosition(position);
-            Selection.SetToPoint(position);
-            Selection.SetMode(Keyboard.Ctrl ? SelectionMode.Word : SelectionMode.Normal);
-
-            State.SetSelection(Selection.Start, Selection.End, Selection.Mode);
-
+            var mode = Keyboard.Ctrl ? SelectionMode.Word : SelectionMode.Normal;
+            State.SetSelection(position, position, mode); // Mode handles word expansion
             return;
         }
 
@@ -124,7 +111,6 @@ public class Mouse(Editor editor) : EditorComponent(editor)
             IO.WantCaptureMouse = true;
             Cursor.SetPosition(position);
             Selection.SetEnd(position);
-
             State.SetSelection(Selection.Start, Selection.End, Selection.Mode);
         }
     }
