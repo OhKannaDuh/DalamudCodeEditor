@@ -79,26 +79,27 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
 
         if (shift)
         {
-            if (previous == Selection.Start)
+            Coordinate anchor;
+
+            if (Selection.End == previous)
             {
-                Selection.SetStart(GetPosition());
+                anchor = Selection.Start;
             }
-            else if (previous == Selection.End)
+            else if (Selection.Start == previous)
             {
-                Selection.SetEnd(GetPosition());
+                anchor = Selection.End;
             }
             else
             {
-                Selection.SetStart(previous);
-                Selection.SetEnd(GetPosition());
+                anchor = previous;
             }
+
+            Selection.Set(anchor, newPosition);
         }
         else
         {
             Selection.SetToPoint(GetPosition());
         }
-
-        State.SetSelection(Selection.Start, Selection.End);
 
         EnsureVisible();
     }

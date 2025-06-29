@@ -17,13 +17,13 @@ public class Style(Editor editor) : EditorComponent(editor)
 
     public float LineSpacing { get; private set; } = 1;
 
-    public void ToggleLineNumbers()
+    public void SetShowLineNumbers(bool value)
     {
-        ShowLineNumbers ^= true;
+        ShowLineNumbers = value;
     }
 
-    public void ToggleWhitespace()
+    public void SetShowWhitespace(bool value)
     {
-        ShowWhitespace ^= true;
+        ShowWhitespace = value;
     }
 }

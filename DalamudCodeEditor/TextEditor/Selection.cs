@@ -2,11 +2,15 @@
 
 public class Selection(Editor editor) : EditorComponent(editor)
 {
-    public Coordinate Start { get; private set; } = new();
+    public Coordinate Start
+    {
+        get => State.SelectionStart;
+    }
 
-    public Coordinate End { get; private set; } = new();
-
-    public SelectionMode Mode { get; private set; } = SelectionMode.Normal;
+    public Coordinate End
+    {
+        get => State.SelectionEnd;
+    }
 
     public bool HasSelection
     {
@@ -20,36 +24,41 @@ public class Selection(Editor editor) : EditorComponent(editor)
 
     public void SetStart(Coordinate start)
     {
-        Start = start;
+        Set(start, End);
     }
 
     public void SetEnd(Coordinate end)
     {
-        End = end;
+        Set(Start, end);
     }
 
     public void SetToPoint(Coordinate point)
     {
-        SetStart(point);
-        SetEnd(point);
-    }
-
-    public void SetMode(SelectionMode mode)
-    {
-        Mode = mode;
+        Set(point, point);
     }
 
     public (Coordinate, Coordinate) GetOrderedPositions()
     {
-        var a = State.SelectionStart;
-        var b = State.SelectionEnd;
-        return a > b ? (b, a) : (a, b);
+        return Start > End ? (End, Start) : (Start, End);
+    }
+
+    public void Set(Coordinate point, SelectionMode mode = SelectionMode.Normal)
+    {
+        Set(point, point, mode);
+    }
+
+    public void Set(Coordinate a, Coordinate b, SelectionMode mode = SelectionMode.Normal)
+    {
+        if (a > b)
+        {
+            (a, b) = (b, a);
+        }
+
+        State.SetSelection(a, b, mode);
     }
 
     public void SelectAll()
     {
-        SetStart(new Coordinate(0, 0));
-        SetEnd(new Coordinate(Buffer.GetLines().Count, 0));
-        State.SetSelection(Start, End);
+        Set(new Coordinate(0, 0), new Coordinate(Buffer.GetLines().Count, 0));
     }
 }

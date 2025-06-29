@@ -59,8 +59,8 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
         KeyBindings.Add((new KeyBinding(ImGuiKey.End).ShiftIgnored(), Cursor.MoveEnd));
 
         // Other
-        KeyBindings.Add((new KeyBinding(ImGuiKey.Delete), RequireWritable(editor.Delete)));
-        KeyBindings.Add((new KeyBinding(ImGuiKey.Backspace), RequireWritable(editor.Backspace)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Delete), RequireWritable(Buffer.Delete)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Backspace), RequireWritable(Buffer.Backspace)));
         KeyBindings.Add((new KeyBinding(ImGuiKey.A).CtrlDown(), Selection.SelectAll));
         KeyBindings.Add((new KeyBinding(ImGuiKey.Enter), RequireWritable(() =>
         {
@@ -74,10 +74,10 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
         // Clipboard
         KeyBindings.Add((new KeyBinding(ImGuiKey.C).CtrlDown(), Clipboard.Copy));
         KeyBindings.Add((new KeyBinding(ImGuiKey.Insert).CtrlDown(), Clipboard.Copy));
-        KeyBindings.Add((new KeyBinding(ImGuiKey.V).CtrlDown(), Clipboard.Paste));
-        KeyBindings.Add((new KeyBinding(ImGuiKey.Insert).ShiftDown(), Clipboard.Paste));
-        KeyBindings.Add((new KeyBinding(ImGuiKey.X).CtrlDown(), Clipboard.Cut));
-        KeyBindings.Add((new KeyBinding(ImGuiKey.Delete).ShiftDown(), Clipboard.Cut));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.V).CtrlDown(), RequireWritable(Clipboard.Paste)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Insert).ShiftDown(), RequireWritable(Clipboard.Paste)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.X).CtrlDown(), RequireWritable(Clipboard.Cut)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Delete).ShiftDown(), RequireWritable(Clipboard.Cut)));
     }
 
     public void HandleInput()
@@ -85,11 +85,6 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
         if (!ImGui.IsWindowFocused())
         {
             return;
-        }
-
-        if (ImGui.IsWindowHovered())
-        {
-            ImGui.SetMouseCursor(ImGuiMouseCursor.TextInput);
         }
 
         IO.WantCaptureKeyboard = true;
@@ -109,12 +104,17 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
             return;
         }
 
-        for (var i = 0; i < ImGui.GetIO().InputQueueCharacters.Size; i++)
+        for (var i = 0; i < IO.InputQueueCharacters.Size; i++)
         {
-            var c = ImGui.GetIO().InputQueueCharacters[i];
-            if (c != 0 && (c == '\n' || c >= 32))
+            var utf8 = (uint)IO.InputQueueCharacters[i];
+            if (utf8 == 0 || utf8 < 32 && utf8 != '\n')
             {
-                Buffer.EnterCharacter((char)c);
+                continue;
+            }
+
+            foreach (var character in char.ConvertFromUtf32((int)utf8))
+            {
+                Buffer.EnterCharacter(character);
             }
         }
     }

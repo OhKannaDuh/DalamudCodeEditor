@@ -1,64 +1,64 @@
 ﻿namespace DalamudCodeEditor.TextEditor;
 
-public abstract class EditorComponent(Editor editor)
+public abstract class EditorComponent(Editor _editor)
 {
     public TextBuffer Buffer
     {
-        get => editor.Buffer;
+        get => _editor.Buffer;
     }
 
     public Style Style
     {
-        get => editor.Style;
+        get => _editor.Style;
     }
 
     public Renderer Renderer
     {
-        get => editor.Renderer;
+        get => _editor.Renderer;
     }
 
     public Colorizer Colorizer
     {
-        get => editor.Colorizer;
+        get => _editor.Colorizer;
     }
 
     public UndoManager UndoManager
     {
-        get => editor.UndoManager;
+        get => _editor.UndoManager;
     }
 
     public InputManager InputManager
     {
-        get => editor.InputManager;
+        get => _editor.InputManager;
     }
 
     public Cursor Cursor
     {
-        get => editor.Cursor;
+        get => _editor.Cursor;
     }
 
     public Scroll Scroll
     {
-        get => editor.Scroll;
+        get => _editor.Scroll;
     }
 
     public Selection Selection
     {
-        get => editor.Selection;
+        get => _editor.Selection;
     }
 
     public Clipboard Clipboard
     {
-        get => editor.Clipboard;
+        get => _editor.Clipboard;
     }
 
     public State State
     {
-        get => editor.State;
+        get => _editor.State;
     }
 
     public Palette Palette
     {
-        get => editor.Palette;
+        get => _editor.Palette;
     }
 }

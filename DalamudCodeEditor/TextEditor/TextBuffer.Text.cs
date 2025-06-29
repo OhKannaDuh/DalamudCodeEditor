@@ -15,7 +15,7 @@ public partial class TextBuffer
 
         totalLines += InsertTextAt(pos, value);
 
-        State.SetSelection(pos, pos);
+        Selection.Set(pos);
         Cursor.SetPosition(pos);
         Colorizer.Colorize(start.Line - 1, totalLines + 2);
     }

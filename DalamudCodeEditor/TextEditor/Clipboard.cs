@@ -40,7 +40,7 @@ public class Clipboard(Editor editor) : EditorComponent(editor)
             UndoManager.Create(() =>
             {
                 Copy();
-                editor.DeleteSelection();
+                Buffer.DeleteSelection();
             });
         }
     }
@@ -59,7 +59,7 @@ public class Clipboard(Editor editor) : EditorComponent(editor)
             {
                 if (Selection.HasSelection)
                 {
-                    editor.DeleteSelection();
+                    Buffer.DeleteSelection();
                 }
 
                 Buffer.InsertText(clipText);

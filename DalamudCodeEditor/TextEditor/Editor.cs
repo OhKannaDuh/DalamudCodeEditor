@@ -76,8 +76,8 @@ public partial class Editor
         Scroll.ScrollToCursor();
     }
 
-    public void ToggleReadOnly()
+    public void SetReadOnly(bool value)
     {
-        IsReadOnly ^= true;
+        IsReadOnly = value;
     }
 }

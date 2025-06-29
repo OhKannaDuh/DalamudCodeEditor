@@ -304,8 +304,8 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
         return Palette[glyph.Color].GetU32();
     }
 
-    public void Toggle()
+    public void SetEnabled(bool value)
     {
-        Enabled ^= true;
+        Enabled = value;
     }
 }

@@ -1,14 +1,7 @@
-using System.Numerics;
-using System.Text;
-using System.Text.RegularExpressions;
-using ImGuiNET;
+﻿namespace DalamudCodeEditor.TextEditor;
 
-namespace DalamudCodeEditor.TextEditor;
-
-public partial class Editor
+public partial class TextBuffer
 {
-    // public long mStartTime;
-
     public void Delete()
     {
         if (Buffer.GetLines().Count == 0)
@@ -34,8 +27,6 @@ public partial class Editor
                     {
                         return;
                     }
-
-                    // Advance(u.RemovedEnd);
 
                     var nextLine = Buffer.GetLines()[pos.Line + 1];
                     line.AddRange(nextLine);
@@ -191,7 +182,7 @@ public partial class Editor
 
         DeleteRange(State.SelectionStart, State.SelectionEnd);
 
-        State.SetSelection(State.SelectionStart, State.SelectionStart);
+        Selection.Set(State.SelectionStart);
         Cursor.SetPosition(State.SelectionStart);
         Colorizer.Colorize(State.SelectionStart.Line, 1);
     }

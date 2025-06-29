@@ -112,7 +112,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
             {
                 if (Selection.HasSelection)
                 {
-                    editor.DeleteSelection();
+                    Buffer.DeleteSelection();
                 }
 
                 InsertCharacterAtCursor(c);
