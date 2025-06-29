@@ -203,19 +203,14 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
         }
         else
         {
-            var buf = new char[7];
-            var len = Utf8Helper.ImTextCharToUtf8(ref buf, buf.Length, c);
-            if (len <= 0)
+            var insertIndex = Buffer.GetCharacterIndex(coord);
+
+            if (!Rune.TryCreate(c, out var rune))
             {
                 return;
             }
 
-            var insertIndex = Buffer.GetCharacterIndex(coord);
-
-            for (var i = 0; i < len && buf[i] != '\0'; i++)
-            {
-                line.Insert(insertIndex++, new Glyph(buf[i]));
-            }
+            line.Insert(insertIndex, new Glyph(rune.ToString()[0]));
 
             Cursor.SetPosition(new Coordinate(coord.Line, Buffer.GetCharacterColumn(coord.Line, insertIndex)));
         }
