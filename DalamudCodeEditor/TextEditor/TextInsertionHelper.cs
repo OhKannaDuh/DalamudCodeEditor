@@ -8,20 +8,19 @@ public static class TextInsertionHelper
 
         while (where.Line >= lines.Count)
         {
-            lines.Add([]);
+            lines.Add(new List<Glyph>());
         }
 
         var index = GetCharacterIndex(lines, where, tabSize);
 
-        for (var i = 0; i < value.Length; i++)
+        foreach (var rune in value.EnumerateRunes())
         {
-            var chr = value[i];
-            if (chr == '\r')
+            if (rune.Value == '\r')
             {
                 continue;
             }
 
-            if (chr == '\n')
+            if (rune.Value == '\n')
             {
                 var currentLine = lines[where.Line];
 
@@ -46,14 +45,13 @@ public static class TextInsertionHelper
                 }
 
                 var line = lines[where.Line];
-                var d = Utf8Helper.UTF8CharLength(chr);
-                for (var j = 0; j < d && i < value.Length && value[i] != '\0'; j++, i++)
+                var s = rune.ToString();
+                foreach (var c in s)
                 {
-                    line.Insert(index++, new Glyph(value[i], PaletteIndex.Default));
+                    line.Insert(index++, new Glyph(c, PaletteIndex.Default));
                 }
 
-                i--; // Adjust for the outer loop increment
-                where.Column++;
+                where.Column += GlyphHelper.GetGlyphDisplayWidth(s, tabSize);
             }
         }
 
@@ -73,16 +71,10 @@ public static class TextInsertionHelper
 
         while (i < line.Count && col < coords.Column)
         {
-            if (line[i].Character == '\t')
-            {
-                col = col / tabSize * tabSize + tabSize;
-            }
-            else
-            {
-                col++;
-            }
+            var c = line[i].Character;
 
-            i += Utf8Helper.UTF8CharLength(line[i].Character);
+            col += GlyphHelper.GetGlyphDisplayWidth(c, tabSize);
+            i += Utf8Helper.UTF8CharLength(c);
         }
 
         return i;

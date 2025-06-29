@@ -49,6 +49,13 @@ public static class Screen
             else
             {
                 var len = Utf8Helper.UTF8CharLength(c);
+
+                // Defensive bounds check
+                if (glyphIndex + len > glyphs.Count)
+                {
+                    len = glyphs.Count - glyphIndex;
+                }
+
                 var slice = glyphs.Skip(glyphIndex).Take(len).Select(g => g.Character).ToArray();
                 string utf8Char = new(slice);
 
@@ -60,7 +67,10 @@ public static class Screen
                 }
 
                 xOffset += charWidth;
-                column++;
+
+                // Instead of column++, use display width if available
+                column += GlyphHelper.GetGlyphDisplayWidth(utf8Char, editor.Style.TabSize);
+
                 glyphIndex += len;
             }
         }

@@ -1,4 +1,6 @@
-﻿namespace DalamudCodeEditor.TextEditor;
+﻿using System.Text;
+
+namespace DalamudCodeEditor.TextEditor;
 
 public partial class TextBuffer
 {
@@ -58,7 +60,7 @@ public partial class TextBuffer
 
         if (aStart > aEnd)
         {
-            (aStart, aEnd) = (aEnd, aStart); // Ensure correct ordering
+            (aStart, aEnd) = (aEnd, aStart);
         }
 
         var lines = Buffer.GetLines();
@@ -84,16 +86,12 @@ public partial class TextBuffer
             var startCol = Math.Clamp(aStart.Column, 0, firstLine.Count);
             var endCol = Math.Clamp(aEnd.Column, 0, lastLine.Count);
 
-            // Keep the left part of the first line
             var merged = firstLine.Take(startCol).ToList();
 
-            // Append the right part of the last line
             merged.AddRange(lastLine.Skip(endCol));
 
-            // Replace the first line with the merged line
             lines[aStart.Line] = merged;
 
-            // Remove intermediate lines
             Buffer.RemoveLine(aStart.Line + 1, aEnd.Line + 1);
         }
 
@@ -113,58 +111,60 @@ public partial class TextBuffer
             if (Selection.HasSelection)
             {
                 DeleteSelection();
+                return;
+            }
+
+            var pos = Cursor.GetPosition();
+
+            if (pos.Column == 0)
+            {
+                if (pos.Line == 0)
+                {
+                    return;
+                }
+
+                var prevLine = pos.Line - 1;
+                var prevSize = Buffer.GetLineMaxColumn(prevLine);
+
+                var glyphs = Buffer.GetLine(pos.Line);
+                var contents = new StringBuilder();
+                foreach (var glyph in glyphs)
+                {
+                    contents.Append(glyph.Character);
+                }
+
+                Buffer.RemoveLine(pos.Line);
+
+                State.CursorPosition.Line = prevLine;
+                State.CursorPosition.Column = prevSize;
+
+                Buffer.InsertTextAt(Cursor.GetPosition(), contents.ToString());
             }
             else
             {
-                var pos = Cursor.GetPosition();
-                Cursor.SetPosition(pos);
+                var line = Buffer.GetLines()[pos.Line];
+                var cindex = Buffer.GetCharacterIndex(pos);
 
-                if (State.CursorPosition.Column == 0)
+                if (cindex == 0)
                 {
-                    if (State.CursorPosition.Line == 0)
-                    {
-                        return;
-                    }
-
-                    var prevLine = State.CursorPosition.Line - 1;
-                    var prevSize = Buffer.GetLineMaxColumn(prevLine);
-
-                    var glyphs = Buffer.GetLine(State.CursorPosition.Line);
-                    var contents = "";
-                    foreach (var glyph in glyphs)
-                    {
-                        contents += glyph.Character;
-                    }
-
-                    Buffer.RemoveLine(State.CursorPosition.Line);
-                    State.CursorPosition.Line = prevLine;
-                    State.CursorPosition.Column = prevSize;
-                    Buffer.InsertTextAt(Cursor.GetPosition(), contents);
-                }
-                else
-                {
-                    var line = Buffer.GetLines()[State.CursorPosition.Line];
-                    var cindex = Buffer.GetCharacterIndex(pos) - 1;
-                    var cend = cindex + 1;
-
-                    while (cindex > 0 && Utf8Helper.IsUTFSequence(line[cindex].Character))
-                    {
-                        cindex--;
-                    }
-
-                    var charCount = cend - cindex;
-                    for (var i = 0; i < charCount && cindex < line.Count; i++)
-                    {
-                        line.RemoveAt(cindex);
-                    }
-
-                    State.CursorPosition.Column--;
+                    return;
                 }
 
-                Buffer.MarkDirty();
-                Cursor.EnsureVisible();
-                Colorizer.Colorize(State.CursorPosition.Line, 1);
+                cindex--;
+
+
+                line.RemoveAt(cindex);
+
+                State.CursorPosition.Column -= GlyphHelper.GetGlyphDisplayWidth(line[cindex >= line.Count ? line.Count - 1 : cindex].Character, Style.TabSize);
+                if (State.CursorPosition.Column < 0)
+                {
+                    State.CursorPosition.Column = 0;
+                }
             }
+
+            Buffer.MarkDirty();
+            Cursor.EnsureVisible();
+            Colorizer.Colorize(State.CursorPosition.Line, 1);
         });
     }
 

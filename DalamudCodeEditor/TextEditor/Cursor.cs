@@ -141,7 +141,6 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
     public void MoveLeft(int chars = 1)
     {
         var ctrl = InputManager.Keyboard.Ctrl;
-        var shift = InputManager.Keyboard.Shift;
 
         MoveCursor(pos =>
         {
@@ -157,28 +156,16 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
                     if (line > 0)
                     {
                         --line;
-                        if (Buffer.GetLines().Count > line)
-                        {
-                            cindex = Buffer.GetLines()[line].Count;
-                        }
-                        else
-                        {
-                            cindex = 0;
-                        }
+                        cindex = Buffer.GetLines()[line].Count;
                     }
                     else
                     {
-                        // At beginning of buffer: stop moving left
-                        break;
+                        break; // At start of buffer
                     }
                 }
                 else
                 {
                     --cindex;
-                    while (cindex > 0 && Utf8Helper.IsUTFSequence(Buffer.GetLines()[line][cindex].Character))
-                    {
-                        --cindex;
-                    }
                 }
             }
 
@@ -196,7 +183,6 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
     public void MoveRight(int chars = 1)
     {
         var ctrl = InputManager.Keyboard.Ctrl;
-        var shift = InputManager.Keyboard.Shift;
 
         MoveCursor(pos =>
         {
@@ -206,23 +192,30 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
 
             while (amount-- > 0)
             {
-                var currentLine = Buffer.GetLines()[line];
+                var lines = Buffer.GetLines();
+
+                if (line >= lines.Count)
+                {
+                    break;
+                }
+
+                var currentLine = lines[line];
 
                 if (cindex >= currentLine.Count)
                 {
-                    if (line < Buffer.GetLines().Count - 1)
+                    if (line < lines.Count - 1)
                     {
                         ++line;
                         cindex = 0;
                     }
                     else
                     {
-                        break;
+                        break; // At end of buffer
                     }
                 }
                 else
                 {
-                    cindex += Utf8Helper.UTF8CharLength(currentLine[cindex].Character);
+                    ++cindex; // Move right one glyph (Unicode code point)
                 }
             }
 

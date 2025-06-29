@@ -161,59 +161,50 @@ public partial class TextBuffer
         return new Coordinate(aFrom.Line, GetCharacterColumn(aFrom.Line, cindex));
     }
 
-    public int GetCharacterIndex(Coordinate aCoordinates)
+    public int GetCharacterIndex(Coordinate coord)
     {
-        if (aCoordinates.Line >= lines.Count)
+        if (coord.Line >= lines.Count)
         {
             return -1;
         }
 
-        var line = lines[aCoordinates.Line];
-        var c = 0;
-        var i = 0;
-        for (; i < line.Count && c < aCoordinates.Column;)
+        var line = lines[coord.Line];
+        var visualCol = 0;
+
+        for (var i = 0; i < line.Count; i++)
         {
-            if (line[i].Character == '\t')
+            var chr = line[i].Character;
+            var charWidth = GlyphHelper.GetGlyphDisplayWidth(chr, Style.TabSize);
+
+            if (visualCol + charWidth > coord.Column)
             {
-                c = c / Style.TabSize * Style.TabSize + Style.TabSize;
-            }
-            else
-            {
-                ++c;
+                return i;
             }
 
-            i += Utf8Helper.UTF8CharLength(line[i].Character);
+            visualCol += charWidth;
         }
 
-        return i;
+        return line.Count;
     }
 
-    public int GetCharacterColumn(int aLine, int aIndex)
+    public int GetCharacterColumn(int lineNum, int index)
     {
-        if (aLine >= lines.Count)
+        if (lineNum >= lines.Count)
         {
             return 0;
         }
 
-        var line = lines[aLine];
-        var col = 0;
-        var i = 0;
-        while (i < aIndex && i < line.Count)
+        var line = lines[lineNum];
+        var visualCol = 0;
+
+        for (var i = 0; i < index && i < line.Count; i++)
         {
-            var c = line[i].Character;
-            i += Utf8Helper.UTF8CharLength(c);
-            if (c == '\t')
-            {
-                col = col / Style.TabSize * Style.TabSize + Style.TabSize;
-            }
-            else
-            {
-                col++;
-            }
+            visualCol += GlyphHelper.GetGlyphDisplayWidth(line[i].Character, Style.TabSize);
         }
 
-        return col;
+        return visualCol;
     }
+
 
     public bool IsOnWordBoundary(Coordinate aAt)
     {
