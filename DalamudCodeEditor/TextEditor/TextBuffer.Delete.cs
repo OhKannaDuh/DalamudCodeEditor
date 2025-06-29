@@ -51,59 +51,55 @@ public partial class TextBuffer
 
     internal void DeleteRange(Coordinate aStart, Coordinate aEnd)
     {
-        if (aStart.Line >= Buffer.GetLines().Count || aEnd.Line >= Buffer.GetLines().Count)
+        if (aStart == aEnd)
         {
             return;
         }
 
-        if (aEnd == aStart)
+        if (aStart > aEnd)
+        {
+            (aStart, aEnd) = (aEnd, aStart); // Ensure correct ordering
+        }
+
+        var lines = Buffer.GetLines();
+
+        if (aStart.Line >= lines.Count || aEnd.Line >= lines.Count)
         {
             return;
         }
-
-        var start = Buffer.GetCharacterIndex(aStart);
-        var end = Buffer.GetCharacterIndex(aEnd);
 
         if (aStart.Line == aEnd.Line)
         {
-            var line = Buffer.GetLines()[aStart.Line];
-            var n = Buffer.GetLineMaxColumn(aStart.Line);
-            if (aEnd.Column >= n)
-            {
-                line = line.Take(start).ToList();
-            }
-            else
-            {
-                line = line.Take(start).Take(end - start).ToList();
-            }
+            var line = lines[aStart.Line];
+            var startCol = Math.Clamp(aStart.Column, 0, line.Count);
+            var endCol = Math.Clamp(aEnd.Column, 0, line.Count);
 
-            Buffer.GetLines()[aStart.Line] = line;
+            line.RemoveRange(startCol, endCol - startCol);
         }
         else
         {
-            var firstLine = Buffer.GetLines()[aStart.Line];
-            var lastLine = Buffer.GetLines()[aEnd.Line];
+            var firstLine = lines[aStart.Line];
+            var lastLine = lines[aEnd.Line];
 
-            lastLine = lastLine.TakeLast(lastLine.Count - end).ToList();
-            firstLine = firstLine.Take(start).ToList();
+            var startCol = Math.Clamp(aStart.Column, 0, firstLine.Count);
+            var endCol = Math.Clamp(aEnd.Column, 0, lastLine.Count);
 
-            firstLine.AddRange(lastLine);
-            Buffer.GetLines()[aStart.Line] = firstLine;
-            Buffer.GetLines()[aEnd.Line] = lastLine;
+            // Keep the left part of the first line
+            var merged = firstLine.Take(startCol).ToList();
 
-            if (aStart.Line < aEnd.Line)
-            {
-                firstLine.AddRange(lastLine);
-            }
+            // Append the right part of the last line
+            merged.AddRange(lastLine.Skip(endCol));
 
-            if (aStart.Line < aEnd.Line)
-            {
-                Buffer.RemoveLine(aStart.Line + 1, aEnd.Line + 1);
-            }
+            // Replace the first line with the merged line
+            lines[aStart.Line] = merged;
+
+            // Remove intermediate lines
+            Buffer.RemoveLine(aStart.Line + 1, aEnd.Line + 1);
         }
 
         Buffer.MarkDirty();
     }
+
 
     public void Backspace()
     {

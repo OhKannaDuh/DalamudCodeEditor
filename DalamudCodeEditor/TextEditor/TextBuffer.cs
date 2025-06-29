@@ -67,31 +67,30 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
 
     public string GetText(Coordinate start, Coordinate end)
     {
-        var lineStart = start.Line;
-        var lineEnd = end.Line;
-        var indexStart = TextInsertionHelper.GetCharacterIndex(lines, start, Style.TabSize);
-        var indexEnd = TextInsertionHelper.GetCharacterIndex(lines, end, Style.TabSize);
+        if (start > end)
+        {
+            (start, end) = (end, start);
+        }
 
         var result = new StringBuilder();
 
-        while (indexStart < indexEnd || lineStart < lineEnd)
+        for (var line = start.Line; line <= end.Line && line < lines.Count; line++)
         {
-            if (lineStart >= lines.Count)
+            var lineGlyphs = lines[line];
+
+            var colStart = line == start.Line ? start.Column : 0;
+            var colEnd = line == end.Line ? end.Column : lineGlyphs.Count;
+
+            colStart = Math.Clamp(colStart, 0, lineGlyphs.Count);
+            colEnd = Math.Clamp(colEnd, 0, lineGlyphs.Count);
+
+            for (var col = colStart; col < colEnd; col++)
             {
-                break;
+                result.Append(lineGlyphs[col].Character);
             }
 
-            var line = lines[lineStart];
-
-            if (indexStart < line.Count)
+            if (line < end.Line)
             {
-                result.Append(line[indexStart].Character);
-                indexStart++;
-            }
-            else
-            {
-                indexStart = 0;
-                lineStart++;
                 result.Append('\n');
             }
         }
