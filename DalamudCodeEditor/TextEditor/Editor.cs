@@ -56,6 +56,8 @@ public partial class Editor
 
     public void Draw(string title, Vector2 size = new())
     {
+        State.CursorPosition = Cursor.GetPosition();
+
         Renderer.Start();
         Buffer.MarkClean();
         Cursor.MarkClean();

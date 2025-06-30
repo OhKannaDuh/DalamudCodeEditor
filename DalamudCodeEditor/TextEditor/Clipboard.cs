@@ -19,7 +19,7 @@ public class Clipboard(Editor editor) : EditorComponent(editor)
                 var str = new StringBuilder();
                 foreach (var g in line)
                 {
-                    str.Append(g.Character);
+                    str.Append(g.Rune);
                 }
 
                 ImGui.SetClipboardText(str.ToString());
