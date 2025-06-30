@@ -210,12 +210,17 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
                 return;
             }
 
-            line.Insert(insertIndex, new Glyph(rune.ToString()[0]));
+            Span<char> chars = stackalloc char[2];
+            var len = rune.EncodeToUtf16(chars);
 
-            Cursor.SetPosition(new Coordinate(coord.Line, Buffer.GetCharacterColumn(coord.Line, insertIndex)));
+            for (var i = 0; i < len; i++)
+            {
+                line.Insert(insertIndex + i, new Glyph(chars[i]));
+            }
+
+            Cursor.SetPosition(new Coordinate(coord.Line, Buffer.GetCharacterColumn(coord.Line, insertIndex + len)));
         }
     }
-
 
     public List<List<Glyph>> GetLines()
     {

@@ -44,187 +44,164 @@ public class Renderer(Editor editor) : EditorComponent(editor)
         var scrollX = ImGui.GetScrollX();
         var scrollY = ImGui.GetScrollY();
 
-        var lineNo = (int)Math.Floor(scrollY / Renderer.LineHeight);
-        var globalLineMax = Buffer.GetLines().Count;
-        var lineMax = Math.Max(0,
-            Math.Min(Buffer.GetLines().Count - 1, lineNo + (int)Math.Floor((scrollY + contentSize.Y) / LineHeight)));
+        var firstLine = (int)Math.Floor(scrollY / Renderer.LineHeight);
+        var totalLines = Buffer.LineCount;
+        var lastLine = Math.Min(totalLines - 1, firstLine + (int)Math.Floor((scrollY + contentSize.Y) / LineHeight));
 
-        var buf = Style.ShowLineNumbers ? " " + globalLineMax + " " : "";
+        var buf = Style.ShowLineNumbers ? $" {totalLines} " : "";
         SetGutterWidth(ImGui.CalcTextSize(buf).X);
 
-        if (Buffer.GetLines().Count != 0)
+        if (totalLines == 0)
         {
-            var spaceSize = ImGui.CalcTextSize(" ").X;
-            while (lineNo <= lineMax)
+            ImGui.Dummy(new Vector2(GutterWidth + 2, LineHeight));
+            return;
+        }
+
+        var spaceWidth = ImGui.CalcTextSize(" ").X;
+
+        for (var lineNo = firstLine; lineNo <= lastLine; lineNo++)
+        {
+            var lineStart = new Vector2(cursorScreenPos.X, cursorScreenPos.Y + lineNo * LineHeight);
+            var textStart = new Vector2(lineStart.X + GutterWidth, lineStart.Y);
+
+            var line = Buffer.GetLine(lineNo);
+            longest = Math.Max(
+                GutterWidth + Buffer.TextDistanceToLineStart(new Coordinate(lineNo, Buffer.GetLineMaxColumn(lineNo))), longest);
+
+            // Draw selection
+            var selectionStartX = -1f;
+            var selectionEndX = -1f;
+
+            var lineStartCoord = new Coordinate(lineNo, 0);
+            var lineEndCoord = new Coordinate(lineNo, Buffer.GetLineMaxColumn(lineNo));
+
+            if (State.SelectionStart <= lineEndCoord)
             {
-                var lineStartScreenPos = new Vector2(cursorScreenPos.X, cursorScreenPos.Y + lineNo * LineHeight);
-                var textScreenPos = new Vector2(lineStartScreenPos.X + GutterWidth, lineStartScreenPos.Y);
+                selectionStartX = State.SelectionStart > lineStartCoord
+                    ? Buffer.TextDistanceToLineStart(State.SelectionStart)
+                    : 0f;
+            }
 
-                var line = Buffer.GetLines()[lineNo];
-                longest = Math.Max(
-                    GutterWidth + Buffer.TextDistanceToLineStart(new Coordinate(lineNo, Buffer.GetLineMaxColumn(lineNo))), longest);
-                var columnNo = 0;
-                Coordinate lineStartCoord = new(lineNo, 0);
-                Coordinate lineEndCoord = new(lineNo, Buffer.GetLineMaxColumn(lineNo));
+            if (State.SelectionEnd > lineStartCoord)
+            {
+                selectionEndX = Buffer.TextDistanceToLineStart(State.SelectionEnd < lineEndCoord
+                    ? State.SelectionEnd
+                    : lineEndCoord);
+            }
 
-                // Draw selection for the current line
-                var selectinoStart = -1.0f;
-                var selectEnd = -1.0f;
+            if (State.SelectionEnd.Line > lineNo)
+            {
+                selectionEndX += CharacterWidth;
+            }
 
-                if (State.SelectionStart <= lineEndCoord)
+            if (selectionStartX >= 0 && selectionEndX >= 0 && selectionStartX < selectionEndX)
+            {
+                var vstart = new Vector2(lineStart.X + GutterWidth + selectionStartX, lineStart.Y);
+                var vend = new Vector2(lineStart.X + GutterWidth + selectionEndX, lineStart.Y + LineHeight);
+                drawList.AddRectFilled(vstart, vend, Palette.Selection.GetU32());
+            }
+
+            // Draw line number
+            if (Style.ShowLineNumbers)
+            {
+                buf = $"{lineNo + 1}  ";
+                var numWidth = ImGui.CalcTextSize(buf).X;
+                drawList.AddText(
+                    new Vector2(lineStart.X + GutterWidth - numWidth, lineStart.Y),
+                    Palette.LineNumber.GetU32(),
+                    buf);
+            }
+
+            // Draw current line highlight & cursor
+            if (State.CursorPosition.Line == lineNo && ImGui.IsWindowFocused())
+            {
+                if (!Selection.HasSelection)
                 {
-                    selectinoStart = State.SelectionStart > lineStartCoord
-                        ? Buffer.TextDistanceToLineStart(State.SelectionStart)
-                        : 0.0f;
+                    var lineEnd = new Vector2(lineStart.X + contentSize.X + scrollX, lineStart.Y + LineHeight);
+                    drawList.AddRectFilled(lineStart, lineEnd,
+                        Palette[PaletteIndex.CurrentLineFill].GetU32());
+                    drawList.AddRect(lineStart, lineEnd, Palette.CurrentLineEdge.GetU32(), 1f);
                 }
 
-                if (State.SelectionEnd > lineStartCoord)
+                var elapsed = DateTime.Now.Ticks - editor.StartTime;
+                if (elapsed > 400)
                 {
-                    selectEnd = Buffer.TextDistanceToLineStart(State.SelectionEnd < lineEndCoord
-                        ? State.SelectionEnd
-                        : lineEndCoord);
-                }
+                    var cx = Buffer.TextDistanceToLineStart(State.CursorPosition);
+                    var cursorStart = new Vector2(textStart.X + cx, lineStart.Y);
+                    var cursorEnd = new Vector2(cursorStart.X + 1f, lineStart.Y + LineHeight);
+                    drawList.AddRectFilled(cursorStart, cursorEnd, Palette[PaletteIndex.Cursor].GetU32());
 
-                if (State.SelectionEnd.Line > lineNo)
-                {
-                    selectEnd += CharacterWidth;
-                }
-
-                if (selectinoStart != -1 && selectEnd != -1 && selectinoStart < selectEnd)
-                {
-                    Vector2 vstart = new(lineStartScreenPos.X + GutterWidth + selectinoStart, lineStartScreenPos.Y);
-                    Vector2 vend = new(lineStartScreenPos.X + GutterWidth + selectEnd,
-                        lineStartScreenPos.Y + LineHeight);
-                    drawList.AddRectFilled(vstart, vend, Palette.Selection.GetU32());
-                }
-
-                var start = new Vector2(lineStartScreenPos.X + scrollX, lineStartScreenPos.Y);
-
-                // Draw line number (right aligned)
-                if (Style.ShowLineNumbers)
-                {
-                    buf = lineNo + 1 + "  ";
-
-                    var lineNoWidth = ImGui.CalcTextSize(buf).X;
-                    drawList.AddText(new Vector2(lineStartScreenPos.X + GutterWidth - lineNoWidth, lineStartScreenPos.Y),
-                        Palette.LineNumber.GetU32(), buf);
-                }
-
-                if (State.CursorPosition.Line == lineNo)
-                {
-                    var focused = ImGui.IsWindowFocused();
-
-                    // Highlight the current line (where the cursor is)
-                    if (!Selection.HasSelection)
+                    if (elapsed > 800)
                     {
-                        var end = new Vector2(start.X + contentSize.X + scrollX, start.Y + LineHeight);
-                        drawList.AddRectFilled(start, end,
-                            Palette[focused ? PaletteIndex.CurrentLineFill : PaletteIndex.CurrentLineFillInactive].GetU32());
-                        drawList.AddRect(start, end, Palette.CurrentLineEdge.GetU32(), 1.0f);
-                    }
-
-                    // Render the cursor
-                    if (focused)
-                    {
-                        var timeEnd = DateTime.Now.Ticks;
-                        var elapsed = timeEnd - editor.StartTime;
-                        if (elapsed > 400)
-                        {
-                            var width = 1.0f;
-                            var cx = Buffer.TextDistanceToLineStart(State.CursorPosition);
-
-                            Vector2 cstart = new(textScreenPos.X + cx, lineStartScreenPos.Y);
-                            Vector2 cend = new(textScreenPos.X + cx + width, lineStartScreenPos.Y + LineHeight);
-                            drawList.AddRectFilled(cstart, cend, Palette[PaletteIndex.Cursor].GetU32());
-                            if (elapsed > 800)
-                            {
-                                editor.StartTime = timeEnd;
-                            }
-                        }
+                        editor.StartTime = DateTime.Now.Ticks;
                     }
                 }
+            }
 
-                // Render colorized text
-                var prevColor = line.Count == 0 ? Palette[PaletteIndex.Default].GetU32() : Colorizer.GetGlyphColor(line[0]);
-                Vector2 bufferOffset = new();
+            // Draw glyphs
+            var prevColor = Palette[PaletteIndex.Default].GetU32();
+            var offset = Vector2.Zero;
+            var run = "";
+            for (var i = 0; i < line.Count;)
+            {
+                var glyph = line[i];
+                var rune = glyph.Rune;
+                var color = Colorizer.GetGlyphColor(glyph);
 
-                for (var i = 0; i < line.Count;)
+                if ((color != prevColor || rune.Value == '\t' || rune.Value == ' ') && run.Length > 0)
                 {
-                    var glyph = line[i];
-                    var color = Colorizer.GetGlyphColor(glyph);
-
-                    if ((color != prevColor || glyph.Character == '\t' || glyph.Character == ' ') && TextRun.Length != 0)
-                    {
-                        Vector2 newOffset = new(textScreenPos.X + bufferOffset.X, textScreenPos.Y + bufferOffset.Y);
-                        drawList.AddText(newOffset, prevColor, TextRun);
-
-                        var textSize = ImGui.CalcTextSize(TextRun).X;
-                        bufferOffset.X += textSize;
-                        TextRun = "";
-                    }
-
-                    prevColor = color;
-
-                    if (glyph.Character == '\t')
-                    {
-                        var oldX = bufferOffset.X;
-                        bufferOffset.X = (float)(1.0f + Math.Floor((1.0f + bufferOffset.X) / (Style.TabSize * spaceSize))) *
-                                         (Style.TabSize * spaceSize);
-                        ++i;
-
-                        if (Style.ShowWhitespace)
-                        {
-                            var s = ImGui.GetFontSize();
-                            var x1 = textScreenPos.X + oldX + 1.0f;
-                            var x2 = textScreenPos.X + bufferOffset.X - 1.0f;
-                            var y = textScreenPos.Y + bufferOffset.Y + s * 0.5f;
-                            Vector2 p1 = new(x1, y);
-                            Vector2 p2 = new(x2, y);
-                            Vector2 p3 = new(x2 - s * 0.2f, y - s * 0.2f);
-                            Vector2 p4 = new(x2 - s * 0.2f, y + s * 0.2f);
-                            drawList.AddLine(p1, p2, 0x90909090);
-                            drawList.AddLine(p2, p3, 0x90909090);
-                            drawList.AddLine(p2, p4, 0x90909090);
-                        }
-                    }
-                    else if (glyph.Character == ' ')
-                    {
-                        if (Style.ShowWhitespace)
-                        {
-                            var s = ImGui.GetFontSize();
-                            var x = textScreenPos.X + bufferOffset.X + spaceSize * 0.5f;
-                            var y = textScreenPos.Y + bufferOffset.Y + s * 0.5f;
-                            drawList.AddCircleFilled(new Vector2(x, y), 1.5f, 0x80808080, 4);
-                        }
-
-                        bufferOffset.X += spaceSize;
-                        i++;
-                    }
-                    else
-                    {
-                        var l = Utf8Helper.UTF8CharLength(glyph.Character);
-                        while (l-- > 0)
-                        {
-                            TextRun += line[i++].Character;
-                        }
-                    }
-
-                    ++columnNo;
+                    drawList.AddText(textStart + offset, prevColor, run);
+                    offset.X += ImGui.CalcTextSize(run).X;
+                    run = "";
                 }
 
-                if (TextRun.Count() != 0)
-                {
-                    Vector2 newOffset = new(textScreenPos.X + bufferOffset.X, textScreenPos.Y + bufferOffset.Y);
-                    drawList.AddText(newOffset, prevColor, TextRun);
-                    TextRun = "";
-                }
+                prevColor = color;
 
-                ++lineNo;
+                if (rune.Value == '\t')
+                {
+                    var oldX = offset.X;
+                    var tabWidth = Style.TabSize * spaceWidth;
+                    offset.X = (float)(1.0 + Math.Floor((1.0 + offset.X) / tabWidth)) * tabWidth;
+                    i++;
+
+                    if (Style.ShowWhitespace)
+                    {
+                        var s = ImGui.GetFontSize();
+                        var x1 = textStart.X + oldX + 1.0f;
+                        var x2 = textStart.X + offset.X - 1.0f;
+                        var y = textStart.Y + s * 0.5f;
+                        drawList.AddLine(new Vector2(x1, y), new Vector2(x2, y), 0x90909090);
+                        drawList.AddLine(new Vector2(x2, y), new Vector2(x2 - s * 0.2f, y - s * 0.2f), 0x90909090);
+                        drawList.AddLine(new Vector2(x2, y), new Vector2(x2 - s * 0.2f, y + s * 0.2f), 0x90909090);
+                    }
+                }
+                else if (rune.Value == ' ')
+                {
+                    if (Style.ShowWhitespace)
+                    {
+                        var s = ImGui.GetFontSize();
+                        var x = textStart.X + offset.X + spaceWidth * 0.5f;
+                        var y = textStart.Y + s * 0.5f;
+                        drawList.AddCircleFilled(new Vector2(x, y), 1.5f, 0x80808080, 4);
+                    }
+
+                    offset.X += spaceWidth;
+                    i++;
+                }
+                else
+                {
+                    run += rune.ToString();
+                    i++;
+                }
+            }
+
+            if (run.Length > 0)
+            {
+                drawList.AddText(textStart + offset, prevColor, run);
             }
         }
 
-
-        ImGui.Dummy(new Vector2(longest + 2, Buffer.GetLines().Count * LineHeight));
+        ImGui.Dummy(new Vector2(longest + 2, totalLines * LineHeight));
     }
 
     public void Start()
