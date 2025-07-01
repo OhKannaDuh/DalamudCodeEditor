@@ -106,14 +106,21 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
 
     public void MoveUp(int lines = 1)
     {
-        MoveCursor(pos => new Coordinate(Math.Max(0, pos.Line - lines), pos.Column));
+        MoveCursor(pos => pos.Line == 0 ? new Coordinate(0, 0) : new Coordinate(Math.Max(0, pos.Line - lines), pos.Column));
     }
 
     public void MoveDown(int lines = 1)
     {
-        MoveCursor(pos => new Coordinate(
-            Math.Min(Buffer.GetLines().Count - 1, pos.Line + lines),
-            pos.Column));
+        MoveCursor(pos =>
+        {
+            var lastLine = Math.Max(0, Buffer.GetLines().Count - 1);
+            if (pos.Line == lastLine) {
+                var lastCol = Buffer.GetLineMaxColumn(lastLine);
+                return new Coordinate(lastLine, lastCol);
+            } else {
+                return new Coordinate(Math.Min(lastLine, pos.Line + lines), pos.Column);
+            }
+        });
     }
 
     public void PageUp()
