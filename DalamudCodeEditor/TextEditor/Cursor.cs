@@ -253,4 +253,34 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
     {
         MoveCursor(pos => pos.ToEnd(editor));
     }
+
+    public bool IsOnFirstLine()
+    {
+        return GetPosition().IsOnFirstLine();
+    }
+
+    public bool IsOnLastLine()
+    {
+        return GetPosition().IsOnLastLine(editor);
+    }
+
+    public bool IsAtStartOfLine()
+    {
+        return GetPosition().IsAtStartOfLine();
+    }
+
+    public bool IsAtEndOfLine()
+    {
+        return GetPosition().IsAtEndOfLine(editor);
+    }
+
+    public bool IsAtStartOfFile()
+    {
+        return GetPosition().IsAtStartOfFile();
+    }
+
+    public bool IsAtEndOfFile()
+    {
+        return GetPosition().IsAtEndOfFile(editor);
+    }
 }

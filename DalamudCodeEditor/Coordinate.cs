@@ -129,4 +129,35 @@ public class Coordinate(int line = 0, int column = 0)
     {
         return WithLine(editor.Buffer.LineCount - 1);
     }
+
+
+    public bool IsOnFirstLine()
+    {
+        return Line == 0;
+    }
+
+    public bool IsOnLastLine(Editor editor)
+    {
+        return Line == editor.Buffer.LineCount - 1;
+    }
+
+    public bool IsAtStartOfLine()
+    {
+        return Column == 0;
+    }
+
+    public bool IsAtEndOfLine(Editor editor)
+    {
+        return Column == editor.Buffer.GetLineMaxColumn(Line);
+    }
+
+    public bool IsAtStartOfFile()
+    {
+        return IsOnFirstLine() && IsAtStartOfFile();
+    }
+
+    public bool IsAtEndOfFile(Editor editor)
+    {
+        return IsOnLastLine(editor) && IsAtEndOfLine(editor);
+    }
 }

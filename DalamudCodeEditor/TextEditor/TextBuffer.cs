@@ -12,6 +12,11 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
         get => lines.Count;
     }
 
+    public bool IsEmpty
+    {
+        get => LineCount == 0;
+    }
+
     public void SetText(string text)
     {
         MarkDirty();

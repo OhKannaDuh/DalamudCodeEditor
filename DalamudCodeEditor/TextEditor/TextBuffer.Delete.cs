@@ -7,7 +7,7 @@ public partial class TextBuffer
 {
     public void Delete()
     {
-        if (Buffer.GetLines().Count == 0)
+        if (Buffer.IsEmpty || Cursor.IsAtEndOfFile())
         {
             return;
         }
@@ -17,57 +17,42 @@ public partial class TextBuffer
             if (Selection.HasSelection)
             {
                 DeleteSelection();
+                return;
+            }
+
+            var pos = Cursor.GetPosition();
+            var line = Buffer.GetLine(pos.Line);
+
+            if (Cursor.IsAtEndOfLine())
+            {
+                var nextLine = Buffer.GetLine(pos.Line + 1);
+                line.AddRange(nextLine);
+                Buffer.RemoveLine(pos.Line + 1);
             }
             else
             {
-                var pos = Cursor.GetPosition();
-                Cursor.SetPosition(pos);
-                var line = Buffer.GetLines()[pos.Line];
+                var deleteIndex = pos.Column;
 
-                if (pos.Column == Buffer.GetLineMaxColumn(pos.Line))
+                if (deleteIndex >= 0 && deleteIndex < line.Count)
                 {
-                    if (pos.Line == Buffer.GetLines().Count - 1)
-                    {
-                        return;
-                    }
-
-                    var nextLine = Buffer.GetLines()[pos.Line + 1];
-                    line.AddRange(nextLine);
-                    Buffer.RemoveLine(pos.Line + 1);
+                    line.RemoveAt(deleteIndex);
                 }
-                else
-                {
-                    var cindex = Buffer.GetCharacterIndex(pos);
-
-                    var d = Utf8Helper.UTF8CharLength(line[cindex].Character);
-                    while (d-- > 0 && cindex < line.Count)
-                    {
-                        line.RemoveAt(cindex);
-                    }
-                }
-
-                Buffer.MarkDirty();
             }
+
+            Buffer.MarkDirty();
+            Colorizer.Colorize(pos.Line, 1);
+            Cursor.EnsureVisible();
         });
     }
 
     public void DeleteGroup()
     {
-        if (Buffer.GetLines().Count == 0)
+        if (Buffer.IsEmpty || Cursor.IsAtEndOfFile())
         {
             return;
         }
 
-        var pos = Cursor.GetPosition();
-        var width = Buffer.GetLineMaxColumn(pos.Line);
-        var height = Buffer.LineCount - 1;
-
-        if (pos.Column == width && pos.Line == height)
-        {
-            return;
-        }
-
-        if (pos.Column == width)
+        if (Cursor.IsAtEndOfLine())
         {
             Delete();
             return;
@@ -83,53 +68,53 @@ public partial class TextBuffer
 
             var line = GetCurrentLine();
             var target = line.GetGroupedGlyphsAfterCursor(Cursor);
-            line.RemoveRange(pos.Column, target.Count);
+            line.RemoveRange(Cursor.GetPosition().Column, target.Count);
         });
     }
 
 
-    internal void DeleteRange(Coordinate aStart, Coordinate aEnd)
+    internal void DeleteRange(Coordinate start, Coordinate end)
     {
-        if (aStart == aEnd)
+        if (start == end)
         {
             return;
         }
 
-        if (aStart > aEnd)
+        if (start > end)
         {
-            (aStart, aEnd) = (aEnd, aStart);
+            (start, end) = (end, start);
         }
 
         var lines = Buffer.GetLines();
 
-        if (aStart.Line >= lines.Count || aEnd.Line >= lines.Count)
+        if (start.Line >= lines.Count || end.Line >= lines.Count)
         {
             return;
         }
 
-        if (aStart.Line == aEnd.Line)
+        if (start.Line == end.Line)
         {
-            var line = lines[aStart.Line];
-            var startCol = Math.Clamp(aStart.Column, 0, line.Count);
-            var endCol = Math.Clamp(aEnd.Column, 0, line.Count);
+            var line = lines[start.Line];
+            var startCol = Math.Clamp(start.Column, 0, line.Count);
+            var endCol = Math.Clamp(end.Column, 0, line.Count);
 
             line.RemoveRange(startCol, endCol - startCol);
         }
         else
         {
-            var firstLine = lines[aStart.Line];
-            var lastLine = lines[aEnd.Line];
+            var firstLine = lines[start.Line];
+            var lastLine = lines[end.Line];
 
-            var startCol = Math.Clamp(aStart.Column, 0, firstLine.Count);
-            var endCol = Math.Clamp(aEnd.Column, 0, lastLine.Count);
+            var startCol = Math.Clamp(start.Column, 0, firstLine.Count);
+            var endCol = Math.Clamp(end.Column, 0, lastLine.Count);
 
             var merged = new Line();
             merged.AddRange(firstLine.Take(startCol));
             merged.AddRange(lastLine.Skip(endCol));
 
-            lines[aStart.Line] = merged;
+            lines[start.Line] = merged;
 
-            Buffer.RemoveLine(aStart.Line + 1, aEnd.Line + 1);
+            Buffer.RemoveLine(start.Line + 1, end.Line + 1);
         }
 
         Buffer.MarkDirty();
@@ -137,7 +122,7 @@ public partial class TextBuffer
 
     public void Backspace()
     {
-        if (Buffer.GetLines().Count == 0)
+        if (Buffer.IsEmpty || Cursor.IsAtStartOfFile())
         {
             return;
         }
@@ -152,46 +137,33 @@ public partial class TextBuffer
 
             var pos = Cursor.GetPosition();
 
-            if (pos.Column == 0)
+            if (Cursor.IsAtStartOfLine())
             {
-                if (pos.Line == 0)
-                {
-                    return;
-                }
+                var prevLineIndex = pos.Line - 1;
+                var prevLine = Buffer.GetLine(prevLineIndex);
+                var currentLine = Buffer.GetLine(pos.Line);
 
-                var prevLine = pos.Line - 1;
-                var prevSize = Buffer.GetLineMaxColumn(prevLine);
-
-                var glyphs = Buffer.GetLine(pos.Line);
-                var contents = new StringBuilder();
-                foreach (var glyph in glyphs)
-                {
-                    contents.Append(glyph.Character);
-                }
+                State.CursorPosition.Line = prevLineIndex;
+                State.CursorPosition.Column = prevLine.Count;
 
                 Buffer.RemoveLine(pos.Line);
-
-                State.CursorPosition.Line = prevLine;
-                State.CursorPosition.Column = prevSize;
-
-                Buffer.InsertTextAt(Cursor.GetPosition(), contents.ToString());
+                prevLine.AddRange(currentLine);
             }
             else
             {
-                var line = Buffer.GetLines()[pos.Line];
-                var cindex = Buffer.GetCharacterIndex(pos);
+                var line = Buffer.GetLine(pos.Line);
+                var deleteIndex = pos.Column - 1;
 
-                if (cindex == 0)
+                if (deleteIndex < 0 || deleteIndex >= line.Count)
                 {
                     return;
                 }
 
-                cindex--;
+                line.RemoveAt(deleteIndex);
 
+                // State.CursorPosition.Column -= 1;
+                Cursor.MoveLeft();
 
-                line.RemoveAt(cindex);
-
-                State.CursorPosition.Column -= GlyphHelper.GetGlyphDisplayWidth(line[cindex >= line.Count ? line.Count - 1 : cindex].Character, Style.TabSize);
                 if (State.CursorPosition.Column < 0)
                 {
                     State.CursorPosition.Column = 0;
@@ -206,18 +178,12 @@ public partial class TextBuffer
 
     public void BackspaceGroup()
     {
-        if (Buffer.GetLines().Count == 0)
+        if (Buffer.IsEmpty || Cursor.IsAtStartOfFile())
         {
             return;
         }
 
-        var pos = Cursor.GetPosition();
-        if (pos.Column == 0 && pos.Line == 0)
-        {
-            return;
-        }
-
-        if (pos.Column == 0)
+        if (Cursor.IsAtStartOfLine())
         {
             Backspace();
             return;
@@ -233,7 +199,7 @@ public partial class TextBuffer
 
             var line = GetCurrentLine();
             var target = line.GetGroupedGlyphsBeforeCursor(Cursor);
-            line.RemoveRange(pos.Column - target.Count, target.Count);
+            line.RemoveRange(Cursor.GetPosition().Column - target.Count, target.Count);
         });
     }
 
