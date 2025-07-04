@@ -2,13 +2,13 @@
 
 public static class TextInsertionHelper
 {
-    public static int InsertTextAt(List<List<Glyph>> lines, Coordinate where, string value, int tabSize)
+    public static int InsertTextAt(List<Line> lines, Coordinate where, string value, int tabSize)
     {
         var totalLines = 0;
 
         while (where.Line >= lines.Count)
         {
-            lines.Add(new List<Glyph>());
+            lines.Add(new Line());
         }
 
         var index = GetCharacterIndex(lines, where, tabSize);
@@ -24,7 +24,7 @@ public static class TextInsertionHelper
             {
                 var currentLine = lines[where.Line];
 
-                var newLine = new List<Glyph>();
+                var newLine = new Line();
                 if (index < currentLine.Count)
                 {
                     newLine.AddRange(currentLine.Skip(index));
@@ -41,7 +41,7 @@ public static class TextInsertionHelper
             {
                 while (where.Line >= lines.Count)
                 {
-                    lines.Add(new List<Glyph>());
+                    lines.Add(new ());
                 }
 
                 var line = lines[where.Line];
@@ -58,7 +58,7 @@ public static class TextInsertionHelper
         return totalLines;
     }
 
-    public static int GetCharacterIndex(List<List<Glyph>> lines, Coordinate coords, int tabSize)
+    public static int GetCharacterIndex(List<Line> lines, Coordinate coords, int tabSize)
     {
         if (coords.Line >= lines.Count)
         {

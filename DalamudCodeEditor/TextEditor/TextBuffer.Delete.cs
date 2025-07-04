@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Dalamud.Game.Inventory.InventoryEventArgTypes;
 
 namespace DalamudCodeEditor.TextEditor;
 
@@ -86,8 +87,8 @@ public partial class TextBuffer
             var startCol = Math.Clamp(aStart.Column, 0, firstLine.Count);
             var endCol = Math.Clamp(aEnd.Column, 0, lastLine.Count);
 
-            var merged = firstLine.Take(startCol).ToList();
-
+            var merged = new Line();
+            merged.AddRange(firstLine.Take(startCol));
             merged.AddRange(lastLine.Skip(endCol));
 
             lines[aStart.Line] = merged;

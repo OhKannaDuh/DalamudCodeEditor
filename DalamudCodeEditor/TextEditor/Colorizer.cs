@@ -262,7 +262,7 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
         }
     }
 
-    private bool CompareStringWithGlyphs(string searchString, List<Glyph> line, int startIndex)
+    private bool CompareStringWithGlyphs(string searchString, Line line, int startIndex)
     {
         if (startIndex + searchString.Length > line.Count)
         {

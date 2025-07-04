@@ -29,7 +29,7 @@ public partial class TextBuffer
         return longest;
     }
 
-    public void InsertLine(int index, List<Glyph> line)
+    public void InsertLine(int index, Line line)
     {
         MarkDirty();
         lines.Insert(index, line);
@@ -50,13 +50,13 @@ public partial class TextBuffer
     }
 
 
-    public void ReplaceLine(int index, List<Glyph> line)
+    public void ReplaceLine(int index, Line line)
     {
         MarkDirty();
         lines[index] = line;
     }
 
-    public void AddLine(List<Glyph> line)
+    public void AddLine(Line line)
     {
         MarkDirty();
         lines.Add(line);
@@ -67,8 +67,13 @@ public partial class TextBuffer
         AddLine([]);
     }
 
-    public List<Glyph> GetLine(int index)
+    public Line GetLine(int index)
     {
         return lines[index];
+    }
+
+    public Line GetCurrentLine()
+    {
+        return lines[Cursor.GetPosition().Line];
     }
 }

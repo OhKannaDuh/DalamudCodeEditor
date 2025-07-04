@@ -13,7 +13,7 @@ public struct Glyph(Rune rune, PaletteIndex color = PaletteIndex.Default)
         {
             Span<char> buffer = stackalloc char[2];
             Rune.EncodeToUtf16(buffer);
-            return buffer[0]; // first UTF-16 code unit (might be a high surrogate if rune > 0xFFFF)
+            return buffer[0];
         }
     }
 

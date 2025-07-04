@@ -5,7 +5,7 @@ namespace DalamudCodeEditor.TextEditor;
 
 public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
 {
-    private readonly List<List<Glyph>> lines = [[]];
+    private readonly List<Line> lines = [new()];
 
     public int LineCount
     {
@@ -16,7 +16,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
     {
         MarkDirty();
         lines.Clear();
-        lines.Add([]);
+        AddLine();
 
         foreach (var chr in text)
         {
@@ -27,7 +27,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
 
             if (chr == '\n')
             {
-                lines.Add([]);
+                AddLine();
             }
             else
             {
@@ -62,7 +62,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
     {
         MarkDirty();
         lines.Clear();
-        lines.Add(new List<Glyph>());
+        AddLine();
     }
 
     public string GetText(Coordinate start, Coordinate end)
@@ -222,7 +222,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
         }
     }
 
-    public List<List<Glyph>> GetLines()
+    public List<Line> GetLines()
     {
         return lines;
     }
