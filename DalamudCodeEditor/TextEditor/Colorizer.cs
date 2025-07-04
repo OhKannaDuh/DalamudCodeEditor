@@ -51,7 +51,7 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
             var lineStringBuilder = new StringBuilder(line.Count);
             for (var i = 0; i < line.Count; i++)
             {
-                lineStringBuilder.Append(line[i].Character);
+                lineStringBuilder.Append(line[i].Rune.Value);
                 var glyph = line[i];
                 glyph.Color = PaletteIndex.Default;
                 line[i] = glyph;
@@ -88,15 +88,15 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
 
                 for (var i = 0; i < line.Count;)
                 {
-                    var currentChar = line[i].Character;
+                    var glyph = line[i];
+                    // var currentChar = line[i].Rune;
 
-                    if (char.IsLetter(currentChar) || currentChar == '_')
+                    if (glyph.IsLetter())
                     {
                         var wordStart = i;
                         var wordEnd = i;
 
-                        while (wordEnd < line.Count &&
-                               (char.IsLetterOrDigit(line[wordEnd].Character) || line[wordEnd].Character == '_'))
+                        while (wordEnd < line.Count && glyph.IsLetter() || glyph.IsNumber())
                         {
                             wordEnd++;
                         }
@@ -115,9 +115,9 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
 
                         for (var j = wordStart; j < wordEnd && j < line.Count; j++)
                         {
-                            var glyph = line[j];
-                            glyph.Color = color;
-                            line[j] = glyph;
+                            var subGlyph = line[j];
+                            subGlyph.Color = color;
+                            line[j] = subGlyph;
                         }
 
                         i = wordEnd;
@@ -171,7 +171,7 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
 
         var inMultiLineComment = false;
         var inString = false;
-        var stringDelimiter = '\0';
+        var stringDelimiter = new Rune('\0');
 
 
         if (startLine > 0)
@@ -194,9 +194,9 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
             for (var charIndex = 0; charIndex < line.Count; charIndex++)
             {
                 var currentGlyph = line[charIndex];
-                var character = currentGlyph.Character;
+                var character = currentGlyph.Rune;
 
-                if (!inMultiLineComment && (character == '"' || character == '\''))
+                if (!inMultiLineComment && (character.Value == '"' || character.Value == '\''))
                 {
                     if (!inString)
                     {
@@ -205,7 +205,7 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
                     }
                     else if (character == stringDelimiter)
                     {
-                        if (charIndex + 1 < line.Count && line[charIndex + 1].Character == stringDelimiter)
+                        if (charIndex + 1 < line.Count && line[charIndex + 1].Rune == stringDelimiter)
                         {
                             charIndex++;
                             currentGlyph = line[charIndex];
@@ -213,11 +213,11 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
                         else
                         {
                             inString = false;
-                            stringDelimiter = '\0';
+                            stringDelimiter = new Rune('\0');
                         }
                     }
                 }
-                else if (inString && character == '\\' && charIndex + 1 < line.Count)
+                else if (inString && character.Value == '\\' && charIndex + 1 < line.Count)
                 {
                     charIndex++;
                     currentGlyph = line[charIndex];
@@ -264,14 +264,16 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
 
     private bool CompareStringWithGlyphs(string searchString, Line line, int startIndex)
     {
-        if (startIndex + searchString.Length > line.Count)
+        var runes = searchString.EnumerateRunes().ToArray();
+
+        if (startIndex + runes.Length > line.Count)
         {
             return false;
         }
 
-        for (var i = 0; i < searchString.Length; i++)
+        for (var i = 0; i < runes.Length; i++)
         {
-            if (searchString[i] != line[startIndex + i].Character)
+            if (runes[i].Value != line[startIndex + i].Rune.Value)
             {
                 return false;
             }

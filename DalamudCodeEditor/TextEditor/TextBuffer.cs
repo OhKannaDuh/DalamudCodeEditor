@@ -51,7 +51,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
         {
             foreach (var glyph in lines[i])
             {
-                sb.Append(glyph.Character);
+                sb.Append(glyph.Rune);
             }
 
             if (i < lines.Count - 1)
@@ -91,7 +91,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
 
             for (var col = colStart; col < colEnd; col++)
             {
-                result.Append(lineGlyphs[col].Character);
+                result.Append(lineGlyphs[col].Rune);
             }
 
             if (line < end.Line)
@@ -152,14 +152,14 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
             {
                 if (line.Count > 0)
                 {
-                    if (line[0].Character == '\t')
+                    if (line[0].Rune.Value == '\t')
                     {
                         line.RemoveAt(0);
                         modified = true;
                     }
                     else
                     {
-                        for (var j = 0; j < Style.TabSize && line.Count > 0 && line[0].Character == ' '; j++)
+                        for (var j = 0; j < Style.TabSize && line.Count > 0 && line[0].Rune.Value == ' '; j++)
                         {
                             line.RemoveAt(0);
                             modified = true;
@@ -197,14 +197,15 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
 
         if (c == '\n')
         {
-            InsertLine(coord.Line + 1, []);
+            InsertLine(coord.Line + 1, new Line());
             var newLine = lines[coord.Line + 1];
 
             var splitIndex = Buffer.GetCharacterIndex(coord);
+
             newLine.AddRange(line.Skip(splitIndex));
             line.RemoveRange(splitIndex, line.Count - splitIndex);
 
-            Cursor.SetPosition(new Coordinate(coord.Line + 1, Buffer.GetCharacterColumn(coord.Line + 1, newLine.Count)));
+            Cursor.SetPosition(new Coordinate(coord.Line + 1, 0));
         }
         else
         {
@@ -212,7 +213,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
 
             if (!Rune.TryCreate(c, out var rune))
             {
-                return;
+                return; // invalid char, bail
             }
 
             Span<char> chars = stackalloc char[2];
@@ -223,9 +224,12 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
                 line.Insert(insertIndex + i, new Glyph(chars[i]));
             }
 
-            Cursor.SetPosition(new Coordinate(coord.Line, Buffer.GetCharacterColumn(coord.Line, insertIndex + len)));
+            // Move cursor forward by the rune's display width in columns
+            var newColumn = coord.Column + GlyphHelper.GetGlyphDisplayWidth(new Glyph(rune), Style.TabSize);
+            Cursor.SetPosition(new Coordinate(coord.Line, newColumn));
         }
     }
+
 
     public List<Line> GetLines()
     {

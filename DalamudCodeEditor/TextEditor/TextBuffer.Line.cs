@@ -17,7 +17,7 @@ public partial class TextBuffer
 
             foreach (var glyph in line)
             {
-                length += glyph.Character == '\t' ? Style.TabSize : 1; // Tab counts as 4 visual spaces
+                length += glyph.Rune.Value == '\t' ? Style.TabSize : 1; // Tab counts as 4 visual spaces
             }
 
             if (length > longest)

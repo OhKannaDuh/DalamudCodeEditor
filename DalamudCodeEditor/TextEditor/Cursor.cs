@@ -38,11 +38,8 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
         var top = 1 + (int)Math.Ceiling(scrollY / Renderer.LineHeight);
         var bottom = (int)Math.Ceiling((scrollY + height) / Renderer.LineHeight);
 
-        var left = (int)Math.Ceiling(scrollX / Renderer.CharacterWidth);
-        var right = (int)Math.Ceiling((scrollX + width) / Renderer.CharacterWidth);
 
         var pos = GetPosition();
-        var len = Buffer.GetDistanceToLineStart(pos);
 
         if (pos.Line < top)
         {
@@ -54,15 +51,18 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
             ImGui.SetScrollY(Math.Max(0f, (pos.Line + 4) * Renderer.LineHeight - height));
         }
 
-        var lineNumberGutterWidth = Renderer.GutterWidth;
-        if (len + lineNumberGutterWidth < left + 4)
+        var cx = Buffer.TextDistanceToLineStart(pos);
+        var gutter = Renderer.GutterWidth;
+        var cursorX = gutter + cx;
+
+        if (cursorX < scrollX + 4)
         {
-            ImGui.SetScrollX(Math.Max(0f, len + lineNumberGutterWidth - 4));
+            ImGui.SetScrollX(Math.Max(0f, cursorX - 4));
         }
 
-        if (len + lineNumberGutterWidth > right - 4)
+        if (cursorX > scrollX + width - 4)
         {
-            ImGui.SetScrollX(Math.Max(0f, len + lineNumberGutterWidth + 4 - width));
+            ImGui.SetScrollX(Math.Max(0f, cursorX + 4 - width));
         }
     }
 
@@ -166,14 +166,15 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
                 return pos.WithLine(pos.Line - 1).ToEnd(editor).Sanitized(editor);
             }
 
+            var line = Buffer.GetLine(pos.Line);
             if (InputManager.Keyboard.Ctrl)
             {
-                var line = Buffer.GetCurrentLine();
-                var target = line.GetGroupedGlyphsBeforeCursor(Cursor);
-                return pos.WithColumn(pos.Column - target.Count).Sanitized(editor);
+                var group = line.GetGroupedGlyphsBeforeCursor(Cursor);
+                return pos.WithColumn(pos.Column - group.Count).Sanitized(editor);
             }
 
-            return pos.WithColumn(pos.Column - 1).Sanitized(editor);
+            var cluster = line.GetGraphemeClusterBeforeCursor(Cursor);
+            return pos.WithColumn(pos.Column - cluster.Count).Sanitized(editor);
         });
     }
 

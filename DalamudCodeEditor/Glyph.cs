@@ -6,17 +6,6 @@ public struct Glyph(Rune rune, PaletteIndex color = PaletteIndex.Default)
 {
     public readonly Rune Rune = rune;
 
-    [Obsolete("Use Rune instead")]
-    public char Character
-    {
-        get
-        {
-            Span<char> buffer = stackalloc char[2];
-            Rune.EncodeToUtf16(buffer);
-            return buffer[0];
-        }
-    }
-
     public PaletteIndex Color = color;
 
     public bool Comment = false;

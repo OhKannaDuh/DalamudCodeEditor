@@ -14,11 +14,11 @@ public partial class TextBuffer
         var glyphs = lines[line];
         var column = 0;
 
-        for (var i = 0; i < glyphs.Count;)
+        for (var i = 0; i < glyphs.Count; i++)
         {
-            var c = glyphs[i].Character;
+            var rune = glyphs[i].Rune;
 
-            if (c == '\t')
+            if (rune.Value == '\t')
             {
                 column = column / Style.TabSize * Style.TabSize + Style.TabSize;
             }
@@ -26,8 +26,6 @@ public partial class TextBuffer
             {
                 column++;
             }
-
-            i += Utf8Helper.UTF8CharLength(c);
         }
 
         return column;
@@ -45,25 +43,20 @@ public partial class TextBuffer
         var spaceWidth = ImGui.CalcTextSize(" ").X;
         var charIndex = TextInsertionHelper.GetCharacterIndex(lines, from, Style.TabSize);
 
-        for (var i = 0; i < line.Count && i < charIndex;)
+        for (var i = 0; i < line.Count && i < charIndex; i++)
         {
-            var c = line[i].Character;
+            var rune = line[i].Rune;
 
-            if (c == '\t')
+            if (rune.Value == '\t')
             {
                 var tabSizePixels = Style.TabSize * spaceWidth;
                 distance = ((float)Math.Floor((distance + 0.5f) / tabSizePixels) + 1) * tabSizePixels;
-                i++;
             }
             else
             {
-                var charLen = Utf8Helper.UTF8CharLength(c);
-                var available = Math.Min(charLen, line.Count - i);
-
-                var text = new string(line.Skip(i).Take(available).Select(g => g.Character).ToArray());
+                // Get the string representation of the rune for measuring
+                var text = rune.ToString();
                 distance += ImGui.CalcTextSize(text).X;
-
-                i += available;
             }
         }
 
@@ -86,30 +79,30 @@ public partial class TextBuffer
             return at;
         }
 
-        while (cindex > 0 && char.IsWhiteSpace(line[cindex].Character))
+        var glyph = line[cindex];
+        while (cindex > 0 && glyph.IsWhiteSpace())
         {
             --cindex;
         }
 
-        var cstart = line[cindex].Color;
         while (cindex > 0)
         {
-            var c = line[cindex].Character;
-            if ((c & 0xC0) != 0x80) // not UTF code sequence 10xxxxxx
-            {
-                if (c <= 32 && char.IsWhiteSpace(c))
-                {
-                    cindex++;
-                    break;
-                }
+            var rune = line[cindex - 1].Rune;
+            var color = line[cindex].Color;
 
-                if (cstart != line[cindex - 1].Color)
-                {
-                    break;
-                }
+            // If rune is whitespace and codepoint <= 32, break with increment
+            if (rune.Value <= 32 && char.IsWhiteSpace((char)rune.Value))
+            {
+                cindex++;
+                break;
             }
 
-            --cindex;
+            if (line[cindex - 1].Color != color)
+            {
+                break;
+            }
+
+            cindex--;
         }
 
         return new Coordinate(at.Line, GetCharacterColumn(at.Line, cindex));
@@ -131,22 +124,26 @@ public partial class TextBuffer
             return at;
         }
 
-        var prevspace = char.IsWhiteSpace(line[cindex].Character);
-        var cstart = line[cindex].Color;
+        var prevspace = char.IsWhiteSpace((char)line[cindex].Rune.Value);
+        var cstartColor = line[cindex].Color;
+
         while (cindex < line.Count)
         {
-            var c = line[cindex].Character;
-            var d = Utf8Helper.UTF8CharLength(c);
-            if (cstart != line[cindex].Color)
+            var rune = line[cindex].Rune;
+            var isSpace = char.IsWhiteSpace((char)rune.Value);
+
+            // Stop if color changes
+            if (cstartColor != line[cindex].Color)
             {
                 break;
             }
 
-            if (prevspace != char.IsWhiteSpace(c))
+            // If whitespace state changes, handle trailing whitespace and break
+            if (prevspace != isSpace)
             {
-                if (char.IsWhiteSpace(c))
+                if (isSpace)
                 {
-                    while (cindex < line.Count && char.IsWhiteSpace(line[cindex].Character))
+                    while (cindex < line.Count && char.IsWhiteSpace((char)line[cindex].Rune.Value))
                     {
                         ++cindex;
                     }
@@ -155,7 +152,7 @@ public partial class TextBuffer
                 break;
             }
 
-            cindex += d;
+            ++cindex; // advance by one rune/glyph
         }
 
         return new Coordinate(aFrom.Line, GetCharacterColumn(aFrom.Line, cindex));
@@ -173,8 +170,8 @@ public partial class TextBuffer
 
         for (var i = 0; i < line.Count; i++)
         {
-            var chr = line[i].Character;
-            var charWidth = GlyphHelper.GetGlyphDisplayWidth(chr, Style.TabSize);
+            var glyph = line[i];
+            var charWidth = GlyphHelper.GetGlyphDisplayWidth(glyph, Style.TabSize);
 
             if (visualCol + charWidth > coord.Column)
             {
@@ -199,69 +196,99 @@ public partial class TextBuffer
 
         for (var i = 0; i < index && i < line.Count; i++)
         {
-            visualCol += GlyphHelper.GetGlyphDisplayWidth(line[i].Character, Style.TabSize);
+            visualCol += GlyphHelper.GetGlyphDisplayWidth(line[i], Style.TabSize);
         }
 
         return visualCol;
     }
 
 
-    public bool IsOnWordBoundary(Coordinate aAt)
+    public bool IsOnWordBoundary(Coordinate at)
     {
-        if (aAt.Line >= lines.Count || aAt.Column == 0)
+        if (at.Line >= lines.Count || at.Column == 0)
         {
             return true;
         }
 
-        var line = lines[aAt.Line];
-        var cindex = GetCharacterIndex(aAt);
-        if (cindex >= line.Count)
+        var line = lines[at.Line];
+        var characterIndex = GetCharacterIndex(at);
+        if (characterIndex >= line.Count)
         {
             return true;
         }
 
         if (Colorizer.Enabled)
         {
-            return line[cindex].Color != line[cindex - 1].Color;
+            return line[characterIndex].Color != line[characterIndex - 1].Color;
         }
 
-        return char.IsWhiteSpace(line[cindex].Character) != char.IsWhiteSpace(line[cindex - 1].Character);
+        return line[characterIndex].IsWhiteSpace() != line[characterIndex - 1].IsWhiteSpace();
     }
 
-    public float TextDistanceToLineStart(Coordinate aFrom)
+    public float TextDistanceToLineStart(Coordinate position)
     {
-        var line = Buffer.GetLines()[aFrom.Line];
+        var line = Buffer.GetLine(position.Line);
+        var spaceSize = ImGui.CalcTextSize(" ").X;
         var distance = 0.0f;
-        //float spaceSize = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, " ", nullptr, nullptr).x;
-        var spaceSize = ImGui.CalcTextSize(" ").X; // Not sure if that's correct
-        var colIndex = Buffer.GetCharacterIndex(aFrom);
-        for (var it = 0; it < line.Count && it < colIndex;)
+
+        // var colIndex = Buffer.GetCharacterIndex(position);
+        var i = 0;
+        while (i < position.Column && i < line.Count)
         {
-            if (line[it].Character == '\t')
+            var glyph = line[i];
+            var rune = glyph.Rune;
+
+            if (rune.Value == '\t')
             {
-                distance = (float)(1.0f + Math.Floor((1.0f + distance) / (Style.TabSize * spaceSize))) *
-                           (Style.TabSize * spaceSize);
-                ++it;
+                var tabWidth = Style.TabSize * spaceSize;
+                distance = (float)(Math.Floor(distance / tabWidth) + 1) * tabWidth;
+                i++;
+            }
+            else if (rune.Value == ' ')
+            {
+                distance += spaceSize;
+                i++;
             }
             else
             {
-                var d = Utf8Helper.UTF8CharLength(line[it].Character);
-                var l = d;
-                var tempCString = new char[7];
-                var i = 0;
-                for (; i < 6 && d-- > 0 && it < line.Count; i++, it++)
+                // collect a run of same-color, non-whitespace glyphs to match renderer
+                var runStart = i;
+                var runText = "";
+
+                while (i < position.Column && i < line.Count)
                 {
-                    tempCString[i] = line[it].Character;
+                    var r = line[i].Rune;
+                    if (r.Value == '\t' || r.Value == ' ')
+                    {
+                        break;
+                    }
+
+                    runText += r.ToString();
+                    i++;
                 }
 
-                tempCString[i] = '\0';
-                if (l > 0)
-                {
-                    distance += ImGui.CalcTextSize(new string(tempCString, 0, l)).X;
-                }
+                distance += ImGui.CalcTextSize(runText).X;
             }
         }
 
         return distance;
+    }
+
+    public float GetLongestRenderedLineWidth()
+    {
+        var maxWidth = 0f;
+        var spaceSize = ImGui.CalcTextSize(" ").X;
+        var tabSize = Style.TabSize * spaceSize;
+
+        foreach (var line in lines)
+        {
+            var width = line.GetRenderedWidth(spaceSize, tabSize);
+            if (width > maxWidth)
+            {
+                maxWidth = width;
+            }
+        }
+
+        return maxWidth;
     }
 }

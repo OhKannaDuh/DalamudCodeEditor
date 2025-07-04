@@ -1,4 +1,6 @@
-﻿namespace DalamudCodeEditor.TextEditor;
+﻿using ImGuiNET;
+
+namespace DalamudCodeEditor.TextEditor;
 
 public static class TextInsertionHelper
 {
@@ -25,6 +27,7 @@ public static class TextInsertionHelper
                 var currentLine = lines[where.Line];
 
                 var newLine = new Line();
+
                 if (index < currentLine.Count)
                 {
                     newLine.AddRange(currentLine.Skip(index));
@@ -32,6 +35,7 @@ public static class TextInsertionHelper
                 }
 
                 lines.Insert(where.Line + 1, newLine);
+
                 where.Line++;
                 where.Column = 0;
                 index = 0;
@@ -45,13 +49,11 @@ public static class TextInsertionHelper
                 }
 
                 var line = lines[where.Line];
-                var s = rune.ToString();
-                foreach (var c in s)
-                {
-                    line.Insert(index++, new Glyph(c, PaletteIndex.Default));
-                }
 
-                where.Column += GlyphHelper.GetGlyphDisplayWidth(s, tabSize);
+                var glyph = new Glyph(rune, PaletteIndex.Default);
+                line.Insert(index++, glyph);
+
+                where.Column += GlyphHelper.GetGlyphDisplayWidth(glyph, tabSize);
             }
         }
 
@@ -66,17 +68,53 @@ public static class TextInsertionHelper
         }
 
         var line = lines[coords.Line];
-        var col = 0;
-        var i = 0;
+        var visualCol = 0;
 
-        while (i < line.Count && col < coords.Column)
+        for (var i = 0; i < line.Count; i++)
         {
-            var c = line[i].Character;
+            if (visualCol >= coords.Column)
+            {
+                return i;
+            }
 
-            col += GlyphHelper.GetGlyphDisplayWidth(c, tabSize);
-            i += Utf8Helper.UTF8CharLength(c);
+            var glyph = line[i];
+            visualCol += GlyphHelper.GetGlyphDisplayWidth(glyph, tabSize);
         }
 
-        return i;
+        return line.Count;
+    }
+
+    public static int GetCharacterIndexByPixel(List<Glyph> line, float pixelOffset, float spaceSize, float tabSize)
+    {
+        var distance = 0f;
+
+        for (var i = 0; i < line.Count; i++)
+        {
+            var glyph = line[i];
+            var rune = glyph.Rune;
+
+            float width;
+            if (rune.Value == '\t')
+            {
+                width = (float)(Math.Floor(distance / tabSize) + 1) * tabSize - distance;
+            }
+            else if (rune.Value == ' ')
+            {
+                width = spaceSize;
+            }
+            else
+            {
+                width = ImGui.CalcTextSize(rune.ToString()).X;
+            }
+
+            if (distance + width > pixelOffset)
+            {
+                return i;
+            }
+
+            distance += width;
+        }
+
+        return line.Count;
     }
 }

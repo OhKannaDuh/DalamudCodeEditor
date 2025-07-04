@@ -23,15 +23,15 @@ public static class Screen
         }
 
         var glyphs = editor.Buffer.GetLine(line);
-        var xOffset = 0.0f;
+        var xOffset = 0f;
         var glyphIndex = 0;
 
         while (glyphIndex < glyphs.Count)
         {
+            var glyph = glyphs[glyphIndex];
             float charWidth;
-            var c = glyphs[glyphIndex].Character;
 
-            if (c == '\t')
+            if (glyph.Rune.Value == '\t')
             {
                 var tabWidth = editor.Style.TabSize * spaceWidth;
                 var nextTabStop = (float)Math.Floor((xOffset + 0.5f) / tabWidth + 1) * tabWidth;
@@ -43,23 +43,15 @@ public static class Screen
                 }
 
                 xOffset = nextTabStop;
-                column = column / editor.Style.TabSize * editor.Style.TabSize + editor.Style.TabSize;
+
+                // Snap column to next tab stop
+                column = (column / editor.Style.TabSize + 1) * editor.Style.TabSize;
+
                 glyphIndex++;
             }
             else
             {
-                var len = Utf8Helper.UTF8CharLength(c);
-
-                // Defensive bounds check
-                if (glyphIndex + len > glyphs.Count)
-                {
-                    len = glyphs.Count - glyphIndex;
-                }
-
-                var slice = glyphs.Skip(glyphIndex).Take(len).Select(g => g.Character).ToArray();
-                string utf8Char = new(slice);
-
-                charWidth = ImGui.CalcTextSize(utf8Char).X;
+                charWidth = ImGui.CalcTextSize(glyph.Rune.ToString()).X;
 
                 if (gutter + xOffset + charWidth * 0.5f > local.X)
                 {
@@ -68,10 +60,9 @@ public static class Screen
 
                 xOffset += charWidth;
 
-                // Instead of column++, use display width if available
-                column += GlyphHelper.GetGlyphDisplayWidth(utf8Char, editor.Style.TabSize);
+                column += GlyphHelper.GetGlyphDisplayWidth(glyph, editor.Style.TabSize);
 
-                glyphIndex += len;
+                glyphIndex++;
             }
         }
 

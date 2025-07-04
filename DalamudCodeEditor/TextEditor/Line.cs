@@ -1,5 +1,7 @@
 ﻿using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Text;
+using ImGuiNET;
 
 namespace DalamudCodeEditor.TextEditor;
 
@@ -117,6 +119,83 @@ public class Line : Collection<Glyph>
     public Glyph? GetGlyphUnderCursor(Cursor cursor)
     {
         return this[cursor.GetPosition().Column];
+    }
+
+    public List<Glyph> GetGraphemeClusterBeforeCursor(Cursor cursor)
+    {
+        var column = cursor.GetPosition().Column;
+        if (column == 0)
+        {
+            return [];
+        }
+
+        var slice = this.Take(column).ToList();
+        var text = string.Concat(slice.Select(g => g.Rune.ToString()));
+
+        var enumerator = StringInfo.GetTextElementEnumerator(text);
+        var clusterStart = 0;
+        var clusterText = "";
+
+        while (enumerator.MoveNext())
+        {
+            clusterStart = enumerator.ElementIndex;
+            clusterText = enumerator.GetTextElement(); // save last
+        }
+
+        var cluster = new List<Glyph>();
+        for (var i = column - 1; i >= 0; i--)
+        {
+            cluster.Insert(0, this[i]);
+            var test = string.Concat(cluster.Select(g => g.Rune.ToString()));
+            if (test == clusterText)
+            {
+                return cluster;
+            }
+        }
+
+        return [this[column - 1]];
+    }
+
+    public float GetRenderedWidth(float spaceSize, float tabSize)
+    {
+        var width = 0f;
+        var i = 0;
+
+        while (i < Count)
+        {
+            var rune = this[i].Rune;
+
+            if (rune.Value == '\t')
+            {
+                width = (float)(Math.Floor(width / tabSize) + 1) * tabSize;
+                i++;
+            }
+            else if (rune.Value == ' ')
+            {
+                width += spaceSize;
+                i++;
+            }
+            else
+            {
+                var run = "";
+
+                while (i < Count)
+                {
+                    var r = this[i].Rune;
+                    if (r.Value == '\t' || r.Value == ' ')
+                    {
+                        break;
+                    }
+
+                    run += r.ToString();
+                    i++;
+                }
+
+                width += ImGui.CalcTextSize(run).X;
+            }
+        }
+
+        return width;
     }
 
     public override string ToString()

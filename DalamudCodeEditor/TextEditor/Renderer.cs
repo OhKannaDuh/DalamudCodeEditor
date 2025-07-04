@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Globalization;
+using System.Numerics;
 using ImGuiNET;
 
 namespace DalamudCodeEditor.TextEditor;
@@ -36,7 +37,7 @@ public class Renderer(Editor editor) : EditorComponent(editor)
     {
         var contentSize = ImGui.GetWindowContentRegionMax();
         var drawList = ImGui.GetWindowDrawList();
-        var longest = GutterWidth;
+        var longest = GutterWidth + Buffer.GetLongestRenderedLineWidth() + 2; // 2 = padding
 
         var (selectionStart, selectionEnd) = Selection.GetOrderedPositions();
 
@@ -67,8 +68,6 @@ public class Renderer(Editor editor) : EditorComponent(editor)
             var textStart = new Vector2(lineStart.X + GutterWidth, lineStart.Y);
 
             var line = Buffer.GetLine(lineNo);
-            longest = Math.Max(
-                GutterWidth + Buffer.TextDistanceToLineStart(new Coordinate(lineNo, Buffer.GetLineMaxColumn(lineNo))), longest);
 
             // Draw selection
             var selectionStartX = -1f;
@@ -129,7 +128,7 @@ public class Renderer(Editor editor) : EditorComponent(editor)
                 if (elapsed > 400)
                 {
                     var cx = Buffer.TextDistanceToLineStart(State.CursorPosition);
-                    var cursorStart = new Vector2(textStart.X + cx, lineStart.Y);
+                    var cursorStart = lineStart with { X = textStart.X + cx };
                     var cursorEnd = new Vector2(cursorStart.X + 1f, lineStart.Y + LineHeight);
                     drawList.AddRectFilled(cursorStart, cursorEnd, Palette[PaletteIndex.Cursor].GetU32());
 
@@ -203,7 +202,7 @@ public class Renderer(Editor editor) : EditorComponent(editor)
             }
         }
 
-        ImGui.Dummy(new Vector2(longest + 2, totalLines * LineHeight));
+        ImGui.Dummy(new Vector2(longest + 9999, totalLines * LineHeight));
     }
 
     public void Start()

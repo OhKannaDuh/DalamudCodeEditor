@@ -160,14 +160,7 @@ public partial class TextBuffer
                 }
 
                 line.RemoveAt(deleteIndex);
-
-                // State.CursorPosition.Column -= 1;
-                Cursor.MoveLeft();
-
-                if (State.CursorPosition.Column < 0)
-                {
-                    State.CursorPosition.Column = 0;
-                }
+                State.CursorPosition.Column = deleteIndex;
             }
 
             Buffer.MarkDirty();
