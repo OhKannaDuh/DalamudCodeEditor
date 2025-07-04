@@ -151,7 +151,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
             {
                 continue;
             }
-            
+
             var line = lines[i];
             if (shift)
             {
@@ -218,7 +218,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
 
             if (!Rune.TryCreate(c, out var rune))
             {
-                return; 
+                return;
             }
 
             Span<char> chars = stackalloc char[2];

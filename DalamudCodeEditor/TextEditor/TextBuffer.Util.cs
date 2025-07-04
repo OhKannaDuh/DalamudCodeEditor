@@ -30,7 +30,7 @@ public partial class TextBuffer
 
         return column;
     }
-    
+
     public Coordinate FindWordStart(Coordinate aFrom)
     {
         var at = aFrom;
