@@ -147,12 +147,17 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
 
         for (var i = start.Line; i <= end.Line; i++)
         {
+            if (i < 0 || i >= lines.Count)
+            {
+                continue;
+            }
+            
             var line = lines[i];
             if (shift)
             {
                 if (line.Count > 0)
                 {
-                    if (line[0].Rune.Value == '\t')
+                    if (line[0].IsTab())
                     {
                         line.RemoveAt(0);
                         modified = true;
@@ -193,14 +198,14 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
     private void InsertCharacterAtCursor(char c)
     {
         var coord = Cursor.GetPosition();
-        var line = lines[coord.Line];
+        var line = GetCurrentLine();
 
         if (c == '\n')
         {
             InsertLine(coord.Line + 1, new Line());
             var newLine = lines[coord.Line + 1];
 
-            var splitIndex = Buffer.GetCharacterIndex(coord);
+            var splitIndex = coord.Column;
 
             newLine.AddRange(line.Skip(splitIndex));
             line.RemoveRange(splitIndex, line.Count - splitIndex);
@@ -209,11 +214,11 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
         }
         else
         {
-            var insertIndex = Buffer.GetCharacterIndex(coord);
+            var insertIndex = coord.Column;
 
             if (!Rune.TryCreate(c, out var rune))
             {
-                return; // invalid char, bail
+                return; 
             }
 
             Span<char> chars = stackalloc char[2];
@@ -224,8 +229,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
                 line.Insert(insertIndex + i, new Glyph(chars[i]));
             }
 
-            // Move cursor forward by the rune's display width in columns
-            var newColumn = coord.Column + GlyphHelper.GetGlyphDisplayWidth(new Glyph(rune), Style.TabSize);
+            var newColumn = coord.Column + GlyphHelper.GetGlyphDisplayWidth(new Glyph(rune));
             Cursor.SetPosition(new Coordinate(coord.Line, newColumn));
         }
     }

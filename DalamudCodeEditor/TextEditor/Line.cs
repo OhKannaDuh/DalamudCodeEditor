@@ -11,21 +11,6 @@ public class Line : Collection<Glyph>
     {
     }
 
-    public Line(IEnumerable<Glyph> glyphs) : base(new List<Glyph>(glyphs))
-    {
-    }
-
-    public int VisualLength(int tabSize)
-    {
-        var length = 0;
-        foreach (var g in this)
-        {
-            length += g.Rune.Value == '\t' ? tabSize : 1;
-        }
-
-        return length;
-    }
-
     public void AddRange(IEnumerable<Glyph> glyphs)
     {
         foreach (var g in glyphs)
@@ -163,14 +148,14 @@ public class Line : Collection<Glyph>
 
         while (i < Count)
         {
-            var rune = this[i].Rune;
+            var glyph = this[i];
 
-            if (rune.Value == '\t')
+            if (glyph.IsTab())
             {
                 width = (float)(Math.Floor(width / tabSize) + 1) * tabSize;
                 i++;
             }
-            else if (rune.Value == ' ')
+            else if (glyph.Rune.Value == ' ')
             {
                 width += spaceSize;
                 i++;
@@ -196,6 +181,88 @@ public class Line : Collection<Glyph>
         }
 
         return width;
+    }
+
+    public int GetColumnAtX(float x, float spaceSize, float tabSize)
+    {
+        var width = 0f;
+        var col = 0;
+        var i = 0;
+
+        while (i < Count)
+        {
+            var rune = this[i].Rune;
+
+            if (rune.Value == '\t')
+            {
+                var nextTabStop = (float)(Math.Floor(width / tabSize) + 1) * tabSize;
+
+                if (x < nextTabStop)
+                {
+                    return col;
+                }
+
+                width = nextTabStop;
+                col++;
+                i++;
+            }
+            else if (rune.Value == ' ')
+            {
+                if (x < width + spaceSize)
+                {
+                    return col;
+                }
+
+                width += spaceSize;
+                col++;
+                i++;
+            }
+            else
+            {
+                var runSb = new StringBuilder();
+                var runStartIndex = i;
+
+                while (i < Count)
+                {
+                    var r = this[i].Rune;
+                    if (r.Value is '\t' or ' ')
+                    {
+                        break;
+                    }
+
+                    runSb.Append(r.ToString());
+                    i++;
+                    col++;
+                }
+
+                var runText = runSb.ToString();
+                var runWidth = ImGui.CalcTextSize(runText).X;
+
+                if (x < width + runWidth)
+                {
+                    var runAccumWidth = width;
+
+                    for (var j = runStartIndex; j < i; j++)
+                    {
+                        var glyphText = this[j].Rune.ToString();
+                        var glyphWidth = ImGui.CalcTextSize(glyphText).X;
+
+                        if (x < runAccumWidth + glyphWidth / 2)
+                        {
+                            return j;
+                        }
+
+                        runAccumWidth += glyphWidth;
+                    }
+
+                    return i;
+                }
+
+                width += runWidth;
+            }
+        }
+
+        return Count;
     }
 
     public override string ToString()

@@ -202,7 +202,7 @@ public class Renderer(Editor editor) : EditorComponent(editor)
             }
         }
 
-        ImGui.Dummy(new Vector2(longest + 9999, totalLines * LineHeight));
+        ImGui.Dummy(new Vector2(longest, totalLines * LineHeight));
     }
 
     public void Start()

@@ -2,18 +2,13 @@
 
 public static class GlyphHelper
 {
-    public static int GetGlyphDisplayWidth(char c, int tabWidth)
+    public static int GetGlyphDisplayWidth(char c)
     {
-        return GetGlyphDisplayWidth(new Glyph(c), tabWidth);
+        return GetGlyphDisplayWidth(new Glyph(c));
     }
 
-    public static int GetGlyphDisplayWidth(Glyph glyph, int tabWidth)
+    public static int GetGlyphDisplayWidth(Glyph glyph)
     {
-        if (glyph.Rune.Value == '\t')
-        {
-            return tabWidth;
-        }
-
         var codePoint = glyph.Rune.Value;
 
         if (
@@ -32,21 +27,5 @@ public static class GlyphHelper
         }
 
         return 1;
-    }
-
-    public static int GetByteLength(List<Glyph> glyphs)
-    {
-        var total = 0;
-        Span<char> buffer = stackalloc char[2];
-
-        foreach (var glyph in glyphs)
-        {
-            if (glyph.Rune.TryEncodeToUtf16(buffer, out var written))
-            {
-                total += written * 2;
-            }
-        }
-
-        return total;
     }
 }

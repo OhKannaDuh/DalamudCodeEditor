@@ -51,7 +51,7 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
             var lineStringBuilder = new StringBuilder(line.Count);
             for (var i = 0; i < line.Count; i++)
             {
-                lineStringBuilder.Append(line[i].Rune.Value);
+                lineStringBuilder.Append(line[i].Rune);
                 var glyph = line[i];
                 glyph.Color = PaletteIndex.Default;
                 line[i] = glyph;
@@ -89,7 +89,6 @@ public class Colorizer(Editor editor) : EditorComponent(editor)
                 for (var i = 0; i < line.Count;)
                 {
                     var glyph = line[i];
-                    // var currentChar = line[i].Rune;
 
                     if (glyph.IsLetter())
                     {

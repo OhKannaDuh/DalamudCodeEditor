@@ -13,7 +13,7 @@ public static class TextInsertionHelper
             lines.Add(new Line());
         }
 
-        var index = GetCharacterIndex(lines, where, tabSize);
+        var index = where.Column;
 
         foreach (var rune in value.EnumerateRunes())
         {
@@ -53,68 +53,10 @@ public static class TextInsertionHelper
                 var glyph = new Glyph(rune, PaletteIndex.Default);
                 line.Insert(index++, glyph);
 
-                where.Column += GlyphHelper.GetGlyphDisplayWidth(glyph, tabSize);
+                where.Column++;
             }
         }
 
         return totalLines;
-    }
-
-    public static int GetCharacterIndex(List<Line> lines, Coordinate coords, int tabSize)
-    {
-        if (coords.Line >= lines.Count)
-        {
-            return 0;
-        }
-
-        var line = lines[coords.Line];
-        var visualCol = 0;
-
-        for (var i = 0; i < line.Count; i++)
-        {
-            if (visualCol >= coords.Column)
-            {
-                return i;
-            }
-
-            var glyph = line[i];
-            visualCol += GlyphHelper.GetGlyphDisplayWidth(glyph, tabSize);
-        }
-
-        return line.Count;
-    }
-
-    public static int GetCharacterIndexByPixel(List<Glyph> line, float pixelOffset, float spaceSize, float tabSize)
-    {
-        var distance = 0f;
-
-        for (var i = 0; i < line.Count; i++)
-        {
-            var glyph = line[i];
-            var rune = glyph.Rune;
-
-            float width;
-            if (rune.Value == '\t')
-            {
-                width = (float)(Math.Floor(distance / tabSize) + 1) * tabSize - distance;
-            }
-            else if (rune.Value == ' ')
-            {
-                width = spaceSize;
-            }
-            else
-            {
-                width = ImGui.CalcTextSize(rune.ToString()).X;
-            }
-
-            if (distance + width > pixelOffset)
-            {
-                return i;
-            }
-
-            distance += width;
-        }
-
-        return line.Count;
     }
 }

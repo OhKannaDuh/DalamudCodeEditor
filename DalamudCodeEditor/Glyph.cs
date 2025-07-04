@@ -40,9 +40,9 @@ public struct Glyph(Rune rune, PaletteIndex color = PaletteIndex.Default)
         return !IsLetter() && !IsNumber() && !IsWhiteSpace();
     }
 
-    public bool IsWhiteSpaceOrSpecial()
+    public bool IsTab()
     {
-        return IsWhiteSpace() || IsSpecial();
+        return Rune.Value == '\t';
     }
 
     public bool IsGroupable(Glyph glyph)

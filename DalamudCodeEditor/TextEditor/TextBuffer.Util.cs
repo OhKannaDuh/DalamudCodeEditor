@@ -30,39 +30,7 @@ public partial class TextBuffer
 
         return column;
     }
-
-    public float GetDistanceToLineStart(Coordinate from)
-    {
-        if (from.Line < 0 || from.Line >= LineCount)
-        {
-            return 0.0f;
-        }
-
-        var line = lines[from.Line];
-        var distance = 0.0f;
-        var spaceWidth = ImGui.CalcTextSize(" ").X;
-        var charIndex = TextInsertionHelper.GetCharacterIndex(lines, from, Style.TabSize);
-
-        for (var i = 0; i < line.Count && i < charIndex; i++)
-        {
-            var rune = line[i].Rune;
-
-            if (rune.Value == '\t')
-            {
-                var tabSizePixels = Style.TabSize * spaceWidth;
-                distance = ((float)Math.Floor((distance + 0.5f) / tabSizePixels) + 1) * tabSizePixels;
-            }
-            else
-            {
-                // Get the string representation of the rune for measuring
-                var text = rune.ToString();
-                distance += ImGui.CalcTextSize(text).X;
-            }
-        }
-
-        return distance;
-    }
-
+    
     public Coordinate FindWordStart(Coordinate aFrom)
     {
         var at = aFrom;
@@ -171,7 +139,7 @@ public partial class TextBuffer
         for (var i = 0; i < line.Count; i++)
         {
             var glyph = line[i];
-            var charWidth = GlyphHelper.GetGlyphDisplayWidth(glyph, Style.TabSize);
+            var charWidth = GlyphHelper.GetGlyphDisplayWidth(glyph);
 
             if (visualCol + charWidth > coord.Column)
             {
@@ -196,7 +164,7 @@ public partial class TextBuffer
 
         for (var i = 0; i < index && i < line.Count; i++)
         {
-            visualCol += GlyphHelper.GetGlyphDisplayWidth(line[i], Style.TabSize);
+            visualCol += GlyphHelper.GetGlyphDisplayWidth(line[i]);
         }
 
         return visualCol;

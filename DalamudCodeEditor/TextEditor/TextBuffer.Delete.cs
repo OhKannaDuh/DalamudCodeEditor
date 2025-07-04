@@ -192,7 +192,10 @@ public partial class TextBuffer
 
             var line = GetCurrentLine();
             var target = line.GetGroupedGlyphsBeforeCursor(Cursor);
-            line.RemoveRange(Cursor.GetPosition().Column - target.Count, target.Count);
+            var pos = Cursor.GetPosition();
+
+            line.RemoveRange(pos.Column - target.Count, target.Count);
+            Cursor.SetPosition(pos.WithColumn(pos.Column - target.Count));
         });
     }
 
