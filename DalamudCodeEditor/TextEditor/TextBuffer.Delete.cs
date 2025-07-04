@@ -51,6 +51,42 @@ public partial class TextBuffer
         });
     }
 
+    public void DeleteGroup()
+    {
+        if (Buffer.GetLines().Count == 0)
+        {
+            return;
+        }
+
+        var pos = Cursor.GetPosition();
+        var width = Buffer.GetLineMaxColumn(pos.Line);
+        var height = Buffer.LineCount - 1;
+
+        if (pos.Column == width && pos.Line == height)
+        {
+            return;
+        }
+
+        if (pos.Column == width)
+        {
+            Delete();
+            return;
+        }
+
+        UndoManager.Create(() =>
+        {
+            if (Selection.HasSelection)
+            {
+                DeleteSelection();
+                return;
+            }
+
+            var line = GetCurrentLine();
+            var target = line.GetGroupedGlyphsAfterCursor(Cursor);
+            line.RemoveRange(pos.Column, target.Count);
+        });
+    }
+
 
     internal void DeleteRange(Coordinate aStart, Coordinate aEnd)
     {
@@ -168,10 +204,22 @@ public partial class TextBuffer
         });
     }
 
-    public void BackspaceWord()
+    public void BackspaceGroup()
     {
         if (Buffer.GetLines().Count == 0)
         {
+            return;
+        }
+
+        var pos = Cursor.GetPosition();
+        if (pos.Column == 0 && pos.Line == 0)
+        {
+            return;
+        }
+
+        if (pos.Column == 0)
+        {
+            Backspace();
             return;
         }
 
@@ -183,88 +231,9 @@ public partial class TextBuffer
                 return;
             }
 
-            var pos = Cursor.GetPosition();
-
-            if (pos.Line >= Buffer.GetLines().Count)
-            {
-                return;
-            }
-
-            var line = Buffer.GetLines()[pos.Line];
-            var cindex = Buffer.GetCharacterIndex(pos);
-
-            if (cindex == 0)
-            {
-                // If at start of line, merge with previous line if possible
-                if (pos.Line == 0)
-                {
-                    return;
-                }
-
-                var prevLine = pos.Line - 1;
-                var prevLineLength = Buffer.GetLineMaxColumn(prevLine);
-
-                var currentLineGlyphs = new StringBuilder();
-                foreach (var glyph in line)
-                {
-                    currentLineGlyphs.Append(glyph.Character);
-                }
-
-                Buffer.RemoveLine(pos.Line);
-
-                State.CursorPosition.Line = prevLine;
-                State.CursorPosition.Column = prevLineLength;
-
-                Buffer.InsertTextAt(Cursor.GetPosition(), currentLineGlyphs.ToString());
-                Buffer.MarkDirty();
-                Cursor.EnsureVisible();
-                Colorizer.Colorize(State.CursorPosition.Line, 1);
-
-                return;
-            }
-
-            // Find the start of the previous word
-            var deleteStartIndex = cindex - 1;
-
-            // Helper to check if a glyph is whitespace
-            bool IsWhitespace(Glyph g)
-            {
-                return char.IsWhiteSpace(g.Character);
-            }
-
-            // Skip trailing whitespace before the word
-            while (deleteStartIndex >= 0 && IsWhitespace(line[deleteStartIndex]))
-            {
-                deleteStartIndex--;
-            }
-
-            // Then find the start of the word
-            while (deleteStartIndex >= 0 && !IsWhitespace(line[deleteStartIndex]))
-            {
-                deleteStartIndex--;
-            }
-
-            var startRemoveIndex = deleteStartIndex + 1; // first char of the word
-
-            // Remove glyphs between startRemoveIndex and cindex (exclusive)
-            var removeCount = cindex - startRemoveIndex;
-            if (removeCount > 0)
-            {
-                line.RemoveRange(startRemoveIndex, removeCount);
-            }
-
-            // Update cursor position
-            var removedColumns = 0;
-            for (var i = startRemoveIndex; i < startRemoveIndex + removeCount; i++)
-            {
-                removedColumns += GlyphHelper.GetGlyphDisplayWidth(line[i].Character, Style.TabSize);
-            }
-
-            // Since glyphs removed, recalc the column properly instead of adding removedColumns
-            State.CursorPosition.Column = Buffer.GetCharacterColumn(pos.Line, startRemoveIndex);
-            Buffer.MarkDirty();
-            Cursor.EnsureVisible();
-            Colorizer.Colorize(State.CursorPosition.Line, 1);
+            var line = GetCurrentLine();
+            var target = line.GetGroupedGlyphsBeforeCursor(Cursor);
+            line.RemoveRange(pos.Column - target.Count, target.Count);
         });
     }
 

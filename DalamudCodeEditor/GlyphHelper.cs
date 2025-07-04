@@ -38,4 +38,20 @@ public static class GlyphHelper
 
         return 1;
     }
+
+    public static int GetByteLength(List<Glyph> glyphs)
+    {
+        var total = 0;
+        Span<char> buffer = stackalloc char[2];
+
+        foreach (var glyph in glyphs)
+        {
+            if (glyph.Rune.TryEncodeToUtf16(buffer, out var written))
+            {
+                total += written * 2;
+            }
+        }
+
+        return total;
+    }
 }

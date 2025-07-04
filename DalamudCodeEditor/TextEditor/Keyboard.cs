@@ -60,8 +60,9 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
 
         // Other
         KeyBindings.Add((new KeyBinding(ImGuiKey.Delete), RequireWritable(Buffer.Delete)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Delete).CtrlDown(), RequireWritable(Buffer.DeleteGroup)));
         KeyBindings.Add((new KeyBinding(ImGuiKey.Backspace), RequireWritable(Buffer.Backspace)));
-        KeyBindings.Add((new KeyBinding(ImGuiKey.Backspace).CtrlDown(), RequireWritable(Buffer.BackspaceWord)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Backspace).CtrlDown(), RequireWritable(Buffer.BackspaceGroup)));
         KeyBindings.Add((new KeyBinding(ImGuiKey.A).CtrlDown(), Selection.SelectAll));
         KeyBindings.Add((new KeyBinding(ImGuiKey.Enter), RequireWritable(() =>
         {
