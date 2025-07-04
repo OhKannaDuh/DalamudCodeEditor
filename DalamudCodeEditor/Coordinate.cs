@@ -153,7 +153,7 @@ public class Coordinate(int line = 0, int column = 0)
 
     public bool IsAtStartOfFile()
     {
-        return IsOnFirstLine() && IsAtStartOfFile();
+        return IsOnFirstLine() && IsAtStartOfLine();
     }
 
     public bool IsAtEndOfFile(Editor editor)

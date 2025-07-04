@@ -108,7 +108,7 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
     {
         MoveCursor(pos =>
         {
-            if (pos.Line == 1)
+            if (IsOnFirstLine())
             {
                 return pos.ToHome();
             }
@@ -121,9 +121,9 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
     {
         MoveCursor(pos =>
         {
-            if (pos.Line == Buffer.LineCount)
+            if (IsOnLastLine())
             {
-                return pos.ToHome();
+                return pos.ToEnd(editor);
             }
 
 
@@ -151,95 +151,56 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
         MoveCursor(pos => pos.ToLastLine(editor));
     }
 
-    public void MoveLeft(int chars = 1)
+    public void MoveLeft()
     {
         var ctrl = InputManager.Keyboard.Ctrl;
 
+        if (IsAtStartOfFile())
+        {
+            return;
+        }
+
         MoveCursor(pos =>
         {
-            var line = pos.Line;
-            var cindex = Buffer.GetCharacterIndex(pos);
-
-            var amount = chars;
-
-            while (amount-- > 0)
-            {
-                if (cindex == 0)
-                {
-                    if (line > 0)
-                    {
-                        --line;
-                        cindex = Buffer.GetLines()[line].Count;
-                    }
-                    else
-                    {
-                        break; // At start of buffer
-                    }
-                }
-                else
-                {
-                    --cindex;
-                }
-            }
-
-            var newPos = new Coordinate(line, Buffer.GetCharacterColumn(line, cindex));
-
             if (ctrl)
             {
-                newPos = Buffer.FindWordStart(newPos);
+                var line = Buffer.GetCurrentLine();
+                var target = line.GetGroupedGlyphsBeforeCursor(Cursor);
+                return pos.WithColumn(pos.Column - target.Count).Sanitized(editor);
             }
 
-            return newPos.Sanitized(editor);
+            if (IsAtStartOfLine())
+            {
+                var end = Buffer.GetLineMaxColumn(pos.Line - 1);
+                return pos.WithLine(pos.Line - 1).WithColumn(end).Sanitized(editor);
+            }
+
+            return pos.WithColumn(pos.Column - 1).Sanitized(editor);
         });
     }
 
-    public void MoveRight(int chars = 1)
+    public void MoveRight()
     {
-        var ctrl = InputManager.Keyboard.Ctrl;
+        if (IsAtEndOfFile())
+        {
+            return;
+        }
 
         MoveCursor(pos =>
         {
-            var line = pos.Line;
-            var cindex = Buffer.GetCharacterIndex(pos);
-            var amount = chars;
-
-            while (amount-- > 0)
+            if (InputManager.Keyboard.Ctrl)
             {
-                var lines = Buffer.GetLines();
-
-                if (line >= lines.Count)
-                {
-                    break;
-                }
-
-                var currentLine = lines[line];
-
-                if (cindex >= currentLine.Count)
-                {
-                    if (line < lines.Count - 1)
-                    {
-                        ++line;
-                        cindex = 0;
-                    }
-                    else
-                    {
-                        break; // At end of buffer
-                    }
-                }
-                else
-                {
-                    ++cindex;
-                }
+                var line = Buffer.GetCurrentLine();
+                var target = line.GetGroupedGlyphsAfterCursor(Cursor);
+                return pos.WithColumn(pos.Column + target.Count).Sanitized(editor);
             }
 
-            var newPos = new Coordinate(line, Buffer.GetCharacterColumn(line, cindex));
-
-            if (ctrl)
+            if (IsAtEndOfLine())
             {
-                newPos = Buffer.FindWordEnd(newPos);
+                return pos.WithLine(pos.Line + 1).WithColumn(0).Sanitized(editor);
             }
 
-            return newPos.Sanitized(editor);
+            return pos.WithColumn(pos.Column + 1).Sanitized(editor);
         });
     }
 
