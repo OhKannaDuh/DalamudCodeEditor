@@ -38,6 +38,8 @@ public class Renderer(Editor editor) : EditorComponent(editor)
         var drawList = ImGui.GetWindowDrawList();
         var longest = GutterWidth;
 
+        var (selectionStart, selectionEnd) = Selection.GetOrderedPositions();
+
         Scroll.ScrollToTop();
 
         var cursorScreenPos = ImGui.GetCursorScreenPos();
@@ -75,21 +77,21 @@ public class Renderer(Editor editor) : EditorComponent(editor)
             var lineStartCoord = new Coordinate(lineNo, 0);
             var lineEndCoord = new Coordinate(lineNo, Buffer.GetLineMaxColumn(lineNo));
 
-            if (State.SelectionStart <= lineEndCoord)
+            if (selectionStart <= lineEndCoord)
             {
-                selectionStartX = State.SelectionStart > lineStartCoord
-                    ? Buffer.TextDistanceToLineStart(State.SelectionStart)
+                selectionStartX = selectionStart > lineStartCoord
+                    ? Buffer.TextDistanceToLineStart(selectionStart)
                     : 0f;
             }
 
-            if (State.SelectionEnd > lineStartCoord)
+            if (selectionEnd > lineStartCoord)
             {
-                selectionEndX = Buffer.TextDistanceToLineStart(State.SelectionEnd < lineEndCoord
-                    ? State.SelectionEnd
+                selectionEndX = Buffer.TextDistanceToLineStart(selectionEnd < lineEndCoord
+                    ? selectionEnd
                     : lineEndCoord);
             }
 
-            if (State.SelectionEnd.Line > lineNo)
+            if (selectionEnd.Line > lineNo)
             {
                 selectionEndX += CharacterWidth;
             }

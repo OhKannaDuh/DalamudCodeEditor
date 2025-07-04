@@ -98,4 +98,35 @@ public class Coordinate(int line = 0, int column = 0)
         sColumn = lineCount == 0 ? 0 : Math.Min(sColumn, editor.Buffer.GetLineMaxColumn(sLine));
         return new Coordinate(sLine, sColumn);
     }
+
+
+    public Coordinate WithLine(int line)
+    {
+        return new Coordinate(line, Column);
+    }
+
+    public Coordinate WithColumn(int column)
+    {
+        return new Coordinate(Line, column);
+    }
+
+    public Coordinate ToHome()
+    {
+        return WithColumn(0);
+    }
+
+    public Coordinate ToEnd(Editor editor)
+    {
+        return WithColumn(editor.Buffer.GetLineMaxColumn(Line));
+    }
+
+    public Coordinate ToFirstLine()
+    {
+        return WithLine(0);
+    }
+
+    public Coordinate ToLastLine(Editor editor)
+    {
+        return WithLine(editor.Buffer.LineCount - 1);
+    }
 }

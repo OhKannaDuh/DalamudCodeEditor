@@ -36,7 +36,7 @@ public class State(Editor editor) : EditorComponent(editor)
 
         SelectionStart = start.Sanitized(editor);
         SelectionEnd = end.Sanitized(editor);
-        SwapEndsIfNeeded();
+        // SwapEndsIfNeeded();
 
         if (mode == SelectionMode.Word)
         {
@@ -54,7 +54,7 @@ public class State(Editor editor) : EditorComponent(editor)
             SelectionEnd = new Coordinate(lineNo, Buffer.GetLineMaxColumn(lineNo));
         }
 
-        if (SelectionStart == previousStart || SelectionEnd == previousEnd)
+        if (SelectionStart != previousStart || SelectionEnd != previousEnd)
         {
             Cursor.MarkDirty();
         }

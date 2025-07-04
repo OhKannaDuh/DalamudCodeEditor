@@ -104,16 +104,31 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
         EnsureVisible();
     }
 
-    public void MoveUp(int lines = 1)
+    public void MoveUp(int delta = 1)
     {
-        MoveCursor(pos => new Coordinate(Math.Max(0, pos.Line - lines), pos.Column));
+        MoveCursor(pos =>
+        {
+            if (pos.Line == 1)
+            {
+                return pos.ToHome();
+            }
+
+            return pos.WithLine(Math.Max(0, pos.Line - delta));
+        });
     }
 
-    public void MoveDown(int lines = 1)
+    public void MoveDown(int delta = 1)
     {
-        MoveCursor(pos => new Coordinate(
-            Math.Min(Buffer.GetLines().Count - 1, pos.Line + lines),
-            pos.Column));
+        MoveCursor(pos =>
+        {
+            if (pos.Line == Buffer.LineCount)
+            {
+                return pos.ToHome();
+            }
+
+
+            return pos.WithLine(Math.Min(Buffer.LineCount - 1, pos.Line + delta));
+        });
     }
 
     public void PageUp()
@@ -128,14 +143,12 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
 
     public void MoveTop()
     {
-        MoveCursor(pos => new Coordinate(0, 0));
+        MoveCursor(pos => pos.ToHome().ToFirstLine());
     }
 
     public void MoveBottom()
     {
-        var lastLine = Math.Max(0, Buffer.GetLines().Count - 1);
-        var lastCol = Buffer.GetLineMaxColumn(lastLine);
-        MoveCursor(pos => new Coordinate(lastLine, lastCol));
+        MoveCursor(pos => pos.ToLastLine(editor));
     }
 
     public void MoveLeft(int chars = 1)
@@ -215,7 +228,7 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
                 }
                 else
                 {
-                    ++cindex; // Move right one glyph (Unicode code point)
+                    ++cindex;
                 }
             }
 
@@ -233,15 +246,11 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
 
     public void MoveHome()
     {
-        MoveCursor(pos => new Coordinate(pos.Line, 0));
+        MoveCursor(pos => pos.ToHome());
     }
 
     public void MoveEnd()
     {
-        MoveCursor(pos =>
-        {
-            var maxCol = Buffer.GetLineMaxColumn(pos.Line);
-            return new Coordinate(pos.Line, maxCol);
-        });
+        MoveCursor(pos => pos.ToEnd(editor));
     }
 }

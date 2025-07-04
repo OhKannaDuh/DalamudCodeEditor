@@ -19,7 +19,11 @@ public class Selection(Editor editor) : EditorComponent(editor)
 
     public string Text
     {
-        get => Buffer.GetText(Start, End);
+        get
+        {
+            var (start, end) = GetOrderedPositions();
+            return Buffer.GetText(start, end);
+        }
     }
 
     public void SetStart(Coordinate start)
@@ -39,7 +43,7 @@ public class Selection(Editor editor) : EditorComponent(editor)
 
     public (Coordinate, Coordinate) GetOrderedPositions()
     {
-        return Start > End ? (End, Start) : (Start, End);
+        return Start <= End ? (Start, End) : (End, Start);
     }
 
     public void Set(Coordinate point, SelectionMode mode = SelectionMode.Normal)
@@ -49,11 +53,6 @@ public class Selection(Editor editor) : EditorComponent(editor)
 
     public void Set(Coordinate a, Coordinate b, SelectionMode mode = SelectionMode.Normal)
     {
-        if (a > b)
-        {
-            (a, b) = (b, a);
-        }
-
         State.SetSelection(a, b, mode);
     }
 

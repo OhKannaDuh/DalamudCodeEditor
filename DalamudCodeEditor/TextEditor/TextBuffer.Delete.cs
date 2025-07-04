@@ -275,10 +275,12 @@ public partial class TextBuffer
             return;
         }
 
-        DeleteRange(State.SelectionStart, State.SelectionEnd);
+        var (start, end) = Selection.GetOrderedPositions();
 
-        Selection.Set(State.SelectionStart);
-        Cursor.SetPosition(State.SelectionStart);
-        Colorizer.Colorize(State.SelectionStart.Line, 1);
+        DeleteRange(start, end);
+
+        Selection.Set(start);
+        Cursor.SetPosition(start);
+        Colorizer.Colorize(start.Line, 1);
     }
 }

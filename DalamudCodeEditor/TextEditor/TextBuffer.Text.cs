@@ -9,8 +9,10 @@ public partial class TextBuffer
             return;
         }
 
+        var selectionSart = Selection.GetOrderedPositions().Item1;
+
         var pos = Cursor.GetPosition();
-        var start = pos < State.SelectionStart ? pos : State.SelectionStart;
+        var start = pos < selectionSart ? pos : selectionSart;
         var totalLines = pos.Line - start.Line;
 
         totalLines += InsertTextAt(pos, value);
