@@ -41,7 +41,7 @@ public static class TextInsertionHelper
             {
                 while (where.Line >= lines.Count)
                 {
-                    lines.Add(new ());
+                    lines.Add(new Line());
                 }
 
                 var line = lines[where.Line];
