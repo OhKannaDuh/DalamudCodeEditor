@@ -6,12 +6,14 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
 {
     public void SetPosition(Coordinate position)
     {
-        if (State.CursorPosition != position)
+        if (State.CursorPosition == position)
         {
-            editor.State.CursorPosition = position;
-            MarkDirty();
-            EnsureVisible();
+            return;
         }
+
+        editor.State.CursorPosition = position;
+        MarkDirty();
+        EnsureVisible();
     }
 
     public Coordinate GetPosition()
@@ -126,7 +128,6 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
                 return pos.ToEnd(editor);
             }
 
-
             return pos.WithLine(Math.Min(Buffer.LineCount - 1, pos.Line + delta));
         });
     }
@@ -153,8 +154,6 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
 
     public void MoveLeft()
     {
-        var ctrl = InputManager.Keyboard.Ctrl;
-
         if (IsAtStartOfFile())
         {
             return;
@@ -162,17 +161,16 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
 
         MoveCursor(pos =>
         {
-            if (ctrl)
+            if (IsAtStartOfLine())
+            {
+                return pos.WithLine(pos.Line - 1).ToEnd(editor).Sanitized(editor);
+            }
+
+            if (InputManager.Keyboard.Ctrl)
             {
                 var line = Buffer.GetCurrentLine();
                 var target = line.GetGroupedGlyphsBeforeCursor(Cursor);
                 return pos.WithColumn(pos.Column - target.Count).Sanitized(editor);
-            }
-
-            if (IsAtStartOfLine())
-            {
-                var end = Buffer.GetLineMaxColumn(pos.Line - 1);
-                return pos.WithLine(pos.Line - 1).WithColumn(end).Sanitized(editor);
             }
 
             return pos.WithColumn(pos.Column - 1).Sanitized(editor);
@@ -188,16 +186,16 @@ public class Cursor(Editor editor) : DirtyTrackable(editor)
 
         MoveCursor(pos =>
         {
+            if (IsAtEndOfLine())
+            {
+                return pos.WithLine(pos.Line + 1).ToHome().Sanitized(editor);
+            }
+
             if (InputManager.Keyboard.Ctrl)
             {
                 var line = Buffer.GetCurrentLine();
                 var target = line.GetGroupedGlyphsAfterCursor(Cursor);
                 return pos.WithColumn(pos.Column + target.Count).Sanitized(editor);
-            }
-
-            if (IsAtEndOfLine())
-            {
-                return pos.WithLine(pos.Line + 1).WithColumn(0).Sanitized(editor);
             }
 
             return pos.WithColumn(pos.Column + 1).Sanitized(editor);
