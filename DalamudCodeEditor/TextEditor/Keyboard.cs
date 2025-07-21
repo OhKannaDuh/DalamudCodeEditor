@@ -64,13 +64,8 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
         KeyBindings.Add((new KeyBinding(ImGuiKey.Backspace), RequireWritable(Buffer.Backspace)));
         KeyBindings.Add((new KeyBinding(ImGuiKey.Backspace).CtrlDown(), RequireWritable(Buffer.BackspaceGroup)));
         KeyBindings.Add((new KeyBinding(ImGuiKey.A).CtrlDown(), Selection.SelectAll));
-        KeyBindings.Add((new KeyBinding(ImGuiKey.Enter), RequireWritable(() =>
-        {
-            Buffer.EnterCharacter('\n');
-            var pos = Cursor.GetPosition();
-            pos.Column = 0;
-            Cursor.SetPosition(pos);
-        })));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Enter), RequireWritable(Enter)));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.KeypadEnter), RequireWritable(Enter)));
         KeyBindings.Add((new KeyBinding(ImGuiKey.Tab).ShiftIgnored(), RequireWritable(() => Buffer.EnterMultipleCharacters(Style.Tab))));
 
         // Clipboard
@@ -119,5 +114,13 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
                 Buffer.EnterCharacter(character);
             }
         }
+    }
+
+    private void Enter()
+    {
+        Buffer.EnterCharacter('\n');
+        var pos = Cursor.GetPosition();
+        pos.Column = 0;
+        Cursor.SetPosition(pos);
     }
 }
