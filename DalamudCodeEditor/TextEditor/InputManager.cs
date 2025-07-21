@@ -1,6 +1,4 @@
-﻿using ImGuiNET;
-
-namespace DalamudCodeEditor.TextEditor;
+﻿namespace DalamudCodeEditor.TextEditor;
 
 public class InputManager(Editor editor) : EditorComponent(editor)
 {

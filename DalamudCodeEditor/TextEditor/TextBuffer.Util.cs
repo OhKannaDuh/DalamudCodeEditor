@@ -31,49 +31,63 @@ public partial class TextBuffer
         return column;
     }
 
-    public Coordinate FindWordStart(Coordinate aFrom)
+    public Coordinate FindWordStart(Coordinate from)
     {
-        var at = aFrom;
-        if (at.Line >= lines.Count)
+        if (from.Line >= lines.Count)
         {
-            return at;
+            return from;
         }
 
-        var line = lines[at.Line];
-        var cindex = GetCharacterIndex(at);
+        var line = lines[from.Line];
+        var index = GetCharacterIndex(from);
 
-        if (cindex >= line.Count)
+        if (index >= line.Count)
         {
-            return at;
-        }
-
-        var glyph = line[cindex];
-        while (cindex > 0 && glyph.IsWhiteSpace())
-        {
-            --cindex;
-        }
-
-        while (cindex > 0)
-        {
-            var rune = line[cindex - 1].Rune;
-            var color = line[cindex].Color;
-
-            // If rune is whitespace and codepoint <= 32, break with increment
-            if (rune.Value <= 32 && char.IsWhiteSpace((char)rune.Value))
+            if (line.Count == 0)
             {
-                cindex++;
+                return new Coordinate(from.Line, 0);
+            }
+
+            index = line.Count - 1; 
+        }
+
+        if (line[index].IsWhiteSpace())
+        {
+            while (index > 0 && line[index - 1].IsWhiteSpace())
+            {
+                index--;
+            }
+
+            if (index > 0)
+            {
+                index--; 
+            }
+            else
+            {
+                return new Coordinate(from.Line, GetCharacterColumn(from.Line, 0));
+            }
+        }
+
+        var initialColor = line[index].Color;
+
+        while (index > 0)
+        {
+            var prevChar = line[index - 1];
+            
+            if (prevChar.IsWhiteSpace())
+            {
                 break;
             }
 
-            if (line[cindex - 1].Color != color)
+            if (prevChar.Color != initialColor)
             {
-                break;
+                break; 
             }
 
-            cindex--;
+            index--;
         }
 
-        return new Coordinate(at.Line, GetCharacterColumn(at.Line, cindex));
+        return new Coordinate(from.Line, GetCharacterColumn(from.Line, index));
     }
 
     public Coordinate FindWordEnd(Coordinate aFrom)

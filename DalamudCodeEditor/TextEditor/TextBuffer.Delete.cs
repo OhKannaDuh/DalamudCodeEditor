@@ -1,7 +1,4 @@
-﻿using System.Text;
-using Dalamud.Game.Inventory.InventoryEventArgTypes;
-
-namespace DalamudCodeEditor.TextEditor;
+﻿namespace DalamudCodeEditor.TextEditor;
 
 public partial class TextBuffer
 {

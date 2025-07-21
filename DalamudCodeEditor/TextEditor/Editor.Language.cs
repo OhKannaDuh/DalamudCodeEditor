@@ -1,6 +1,4 @@
-﻿using System.Text.RegularExpressions;
-
-namespace DalamudCodeEditor.TextEditor;
+﻿namespace DalamudCodeEditor.TextEditor;
 
 public partial class Editor
 {

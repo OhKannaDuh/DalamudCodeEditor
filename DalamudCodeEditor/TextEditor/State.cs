@@ -1,5 +1,3 @@
-using DalamudCodeEditor.TextEditor;
-
 namespace DalamudCodeEditor.TextEditor;
 
 public class State(Editor editor) : EditorComponent(editor)
@@ -36,7 +34,6 @@ public class State(Editor editor) : EditorComponent(editor)
 
         SelectionStart = start.Sanitized(editor);
         SelectionEnd = end.Sanitized(editor);
-        // SwapEndsIfNeeded();
 
         if (mode == SelectionMode.Word)
         {

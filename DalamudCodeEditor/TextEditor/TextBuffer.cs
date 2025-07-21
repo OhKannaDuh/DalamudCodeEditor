@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using ImGuiNET;
 
 namespace DalamudCodeEditor.TextEditor;
 
@@ -134,7 +133,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
         Colorizer.Colorize(Cursor.GetPosition().Line - 1, 3);
         Cursor.EnsureVisible();
     }
-    
+
     public void EnterMultipleCharacters(IEnumerable<char> characters)
     {
         var shift = InputManager.Keyboard.Shift;
@@ -152,7 +151,7 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
                     {
                         Buffer.DeleteSelection();
                     }
-                
+
                     InsertCharacterAtCursor(c);
                 }
             }

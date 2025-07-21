@@ -12,7 +12,7 @@ public class Style(Editor editor) : EditorComponent(editor)
     {
         get
         {
-            List<char> characters = new List<char>();
+            var characters = new List<char>();
             for (var i = 0; i < TabSize; i++)
             {
                 characters.Add(TabCharacter);
