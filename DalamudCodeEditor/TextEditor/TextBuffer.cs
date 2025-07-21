@@ -34,6 +34,13 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
             {
                 AddLine();
             }
+            else if (chr == '\t')
+            {
+                for (var i = 0; i < editor.Style.TabSize; i++)
+                {
+                    lines.Last().Add(new Glyph(Style.TabCharacter));
+                }
+            }
             else
             {
                 lines.Last().Add(new Glyph(chr));
@@ -120,6 +127,34 @@ public partial class TextBuffer(Editor editor) : DirtyTrackable(editor)
                 }
 
                 InsertCharacterAtCursor(c);
+            }
+        });
+
+        Buffer.MarkDirty();
+        Colorizer.Colorize(Cursor.GetPosition().Line - 1, 3);
+        Cursor.EnsureVisible();
+    }
+    
+    public void EnterMultipleCharacters(IEnumerable<char> characters)
+    {
+        var shift = InputManager.Keyboard.Shift;
+        UndoManager.Create(() =>
+        {
+            foreach (var c in characters)
+            {
+                if (c == '\t' && Selection.HasSelection && SelectionSpansMultipleLines())
+                {
+                    HandleTabIndentation(shift);
+                }
+                else
+                {
+                    if (Selection.HasSelection)
+                    {
+                        Buffer.DeleteSelection();
+                    }
+                
+                    InsertCharacterAtCursor(c);
+                }
             }
         });
 

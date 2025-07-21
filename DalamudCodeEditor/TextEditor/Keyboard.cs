@@ -71,7 +71,7 @@ public class Keyboard(Editor editor) : EditorComponent(editor)
             pos.Column = 0;
             Cursor.SetPosition(pos);
         })));
-        KeyBindings.Add((new KeyBinding(ImGuiKey.Tab).ShiftIgnored(), RequireWritable(() => Buffer.EnterCharacter('\t'))));
+        KeyBindings.Add((new KeyBinding(ImGuiKey.Tab).ShiftIgnored(), RequireWritable(() => Buffer.EnterMultipleCharacters(Style.Tab))));
 
         // Clipboard
         KeyBindings.Add((new KeyBinding(ImGuiKey.C).CtrlDown(), Clipboard.Copy));

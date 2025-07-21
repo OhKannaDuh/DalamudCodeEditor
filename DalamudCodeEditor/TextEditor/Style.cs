@@ -6,6 +6,22 @@ public class Style(Editor editor) : EditorComponent(editor)
 {
     public int TabSize { get; private set; } = 4;
 
+    public readonly char TabCharacter = ' ';
+
+    public List<char> Tab
+    {
+        get
+        {
+            List<char> characters = new List<char>();
+            for (var i = 0; i < TabSize; i++)
+            {
+                characters.Add(TabCharacter);
+            }
+
+            return characters;
+        }
+    }
+
     public bool DrawBorder { get; private set; } = false;
 
     public ImGuiWindowFlags EditorFlags { get; private set; } =
