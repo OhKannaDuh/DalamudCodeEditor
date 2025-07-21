@@ -48,7 +48,7 @@ public partial class TextBuffer
                 return new Coordinate(from.Line, 0);
             }
 
-            index = line.Count - 1; 
+            index = line.Count - 1;
         }
 
         if (line[index].IsWhiteSpace())
@@ -60,7 +60,7 @@ public partial class TextBuffer
 
             if (index > 0)
             {
-                index--; 
+                index--;
             }
             else
             {
@@ -73,7 +73,7 @@ public partial class TextBuffer
         while (index > 0)
         {
             var prevChar = line[index - 1];
-            
+
             if (prevChar.IsWhiteSpace())
             {
                 break;
@@ -81,7 +81,7 @@ public partial class TextBuffer
 
             if (prevChar.Color != initialColor)
             {
-                break; 
+                break;
             }
 
             index--;
