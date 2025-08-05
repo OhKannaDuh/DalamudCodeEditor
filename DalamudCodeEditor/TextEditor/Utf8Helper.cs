@@ -1,34 +1,22 @@
-﻿namespace DalamudCodeEditor.TextEditor;
+﻿using System.Text;
+
+namespace DalamudCodeEditor.TextEditor;
 
 public static class Utf8Helper
 {
-    public static int UTF8CharLength(char c)
+    public static unsafe string BytePtrToString(byte* ptr)
     {
-        if ((c & 0xFE) == 0xFC)
+        if (ptr == null)
         {
-            return 6;
+            return string.Empty;
         }
 
-        if ((c & 0xFC) == 0xF8)
+        var len = 0;
+        while (ptr[len] != 0)
         {
-            return 5;
+            len++;
         }
 
-        if ((c & 0xF8) == 0xF0)
-        {
-            return 4;
-        }
-
-        if ((c & 0xF0) == 0xE0)
-        {
-            return 3;
-        }
-
-        if ((c & 0xE0) == 0xC0)
-        {
-            return 2;
-        }
-
-        return 1;
+        return Encoding.UTF8.GetString(ptr, len);
     }
 }

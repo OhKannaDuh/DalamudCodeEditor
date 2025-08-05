@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace DalamudCodeEditor.TextEditor;
 
@@ -45,14 +45,20 @@ public class Clipboard(Editor editor) : EditorComponent(editor)
         }
     }
 
-    public void Paste()
+    public unsafe void Paste()
     {
         if (editor.IsReadOnly)
         {
             return;
         }
 
-        var clipText = ImGui.GetClipboardText();
+        var clipPtr = ImGui.GetClipboardText();
+        if (clipPtr == null)
+        {
+            return;
+        }
+
+        var clipText = GetClipboardText();
         if (!string.IsNullOrEmpty(clipText))
         {
             UndoManager.Create(() =>
@@ -65,5 +71,10 @@ public class Clipboard(Editor editor) : EditorComponent(editor)
                 Buffer.InsertText(clipText);
             });
         }
+    }
+
+    private unsafe string GetClipboardText()
+    {
+        return Utf8Helper.BytePtrToString(ImGui.GetClipboardText());
     }
 }
