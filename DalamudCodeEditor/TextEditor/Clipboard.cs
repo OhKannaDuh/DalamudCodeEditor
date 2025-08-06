@@ -52,13 +52,7 @@ public class Clipboard(Editor editor) : EditorComponent(editor)
             return;
         }
 
-        var clipPtr = ImGui.GetClipboardText();
-        if (clipPtr == null)
-        {
-            return;
-        }
-
-        var clipText = GetClipboardText();
+        var clipText = ImGui.GetClipboardText();
         if (!string.IsNullOrEmpty(clipText))
         {
             UndoManager.Create(() =>
@@ -71,10 +65,5 @@ public class Clipboard(Editor editor) : EditorComponent(editor)
                 Buffer.InsertText(clipText);
             });
         }
-    }
-
-    private unsafe string GetClipboardText()
-    {
-        return Utf8Helper.BytePtrToString(ImGui.GetClipboardText());
     }
 }
